@@ -1,0 +1,29 @@
+PODS:
+  - Flutter (1.0.0)
+  - wireguard_dart (0.0.1):
+    - Flutter
+    - WireGuardKit
+  - WireGuardKit (0.2)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - wireguard_dart (from `.symlinks/plugins/wireguard_dart/ios`)
+
+SPEC REPOS:
+  "git@github.com:mysteriumnetwork/cocoapodspecs.git":
+    - WireGuardKit
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  wireguard_dart:
+    :path: ".symlinks/plugins/wireguard_dart/ios"
+
+SPEC CHECKSUMS:
+  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  wireguard_dart: 79dec9b867af53d08456f01f5a6142bd04e333a2
+  WireGuardKit: 846ece606934ed2a54ff6bcfe4b1a0b5046df6d5
+
+PODFILE CHECKSUM: db0a8bd59ee5d6b3e093550a5128f5149f5388e3
+
+COCOAPODS: 1.12.0

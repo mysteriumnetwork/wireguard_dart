@@ -1,4 +1,4 @@
-package com.example.wireguard_dart
+package network.mysterium.wireguard_dart
 
 import androidx.annotation.NonNull
 

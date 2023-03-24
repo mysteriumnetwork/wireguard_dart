@@ -46,7 +46,7 @@ class _MyAppState extends State<MyApp> {
       debugPrint(_platformVersion);
     });
 
-    _wireguardDartPlugin.setupTunnel(bundleId: "com.example.wireguardDartExample.WireguardExtension");
+    _wireguardDartPlugin.setupTunnel(bundleId: "network.mysterium.wireguardDartExample.WireguardExtension");
   }
 
   @override

@@ -5,16 +5,18 @@
 Pod::Spec.new do |s|
   s.name = "wireguard_dart"
   s.version = "0.0.1"
-  s.summary = "A new Flutter plugin project."
+  s.summary = "Wireguard (iOS)"
   s.description = <<-DESC
-A new Flutter plugin project.
+Wireguard Dart SDK for iOS
                        DESC
-  s.homepage = "http://example.com"
+  s.homepage = "https://github.com/mysteriumnetwork/wireguard_dart"
   s.license = { :file => "../LICENSE" }
-  s.author = { "Your Company" => "email@example.com" }
+  s.author = { "Mysterium Network" => "mysterium-dev@mysterium.network" }
+
   s.source = { :path => "." }
   s.source_files = "Classes/**/*"
-  s.platform = :ios, "15.5"
+
+  s.platform = :ios, "15.0"
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES", "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "i386" }

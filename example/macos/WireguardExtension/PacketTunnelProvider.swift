@@ -7,11 +7,30 @@
 
 import NetworkExtension
 import WireGuardKit
+import os
 
-class PacketTunnelProvider: WireGuardTunnelProvider {
+class PacketTunnelProvider: NEPacketTunnelProvider {
+    
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier!,
+        category: String(describing: PacketTunnelProvider.self)
+    )
+
+    private lazy var adapter: WireGuardAdapter = {
+        return WireGuardAdapter(with: self) { logLevel, message in
+            let level: OSLogType
+            switch (logLevel) {
+            case .verbose:
+                level = OSLogType.debug
+            case .error:
+                level = OSLogType.error
+            }
+            Self.logger.log(level: level, "\(message)")
+        }
+    }()
 
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
-        super.startTunnel(options: options, completionHandler: completionHandler)
+        super.startTunnel(completionHandler: completionHandler)
     }
     
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {

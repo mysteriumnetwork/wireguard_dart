@@ -39,7 +39,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         result("")
       }
     case "connect":
-      var cfg: String
+      let cfg: String
       if let args = call.arguments as? Dictionary<String, Any>,
          let argCfg = args["cfg"] as? String {
          cfg = argCfg
