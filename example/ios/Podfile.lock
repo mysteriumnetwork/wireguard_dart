@@ -10,7 +10,7 @@ DEPENDENCIES:
   - wireguard_dart (from `.symlinks/plugins/wireguard_dart/ios`)
 
 SPEC REPOS:
-  "git@github.com:mysteriumnetwork/cocoapodspecs.git":
+  trunk:
     - WireGuardKit
 
 EXTERNAL SOURCES:
@@ -22,8 +22,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   wireguard_dart: c7f8a0327a1f19dc67146f47f5dc3f5d9e05bf19
-  WireGuardKit: 39dd408680ffa8293e73ed5126a189a8feb4bf27
+  WireGuardKit: 8b9e7f28441b67aafe60d59c15b8c70bed5ab092
 
-PODFILE CHECKSUM: 92aa51cedc755a3c5aacfc53212a9d523605e656
+PODFILE CHECKSUM: ade4dc95c753c461e86203a02270c4756b4c2b1a
 
 COCOAPODS: 1.12.0

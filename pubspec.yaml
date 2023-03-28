@@ -1,6 +1,6 @@
 name: wireguard_dart
 description: Wireguard Dart SDK
-version: 0.3.0
+version: 0.3.1
 homepage: https://github.com/mysteriumnetwork/wireguard_dart
 repository: https://github.com/mysteriumnetwork/wireguard_dart
 
