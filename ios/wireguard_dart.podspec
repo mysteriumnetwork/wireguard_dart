@@ -23,5 +23,5 @@ Wireguard Dart SDK for iOS
   s.swift_version = "5.7"
 
   s.dependency "Flutter"
-  s.dependency "WireGuardKit"
+  s.dependency "WireGuardKit", "0.3"
 end

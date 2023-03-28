@@ -2,8 +2,8 @@ PODS:
   - Flutter (1.0.0)
   - wireguard_dart (0.0.1):
     - Flutter
-    - WireGuardKit
-  - WireGuardKit (0.2)
+    - WireGuardKit (= 0.3)
+  - WireGuardKit (0.3)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
@@ -21,9 +21,9 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  wireguard_dart: 79dec9b867af53d08456f01f5a6142bd04e333a2
-  WireGuardKit: 846ece606934ed2a54ff6bcfe4b1a0b5046df6d5
+  wireguard_dart: c7f8a0327a1f19dc67146f47f5dc3f5d9e05bf19
+  WireGuardKit: 39dd408680ffa8293e73ed5126a189a8feb4bf27
 
-PODFILE CHECKSUM: db0a8bd59ee5d6b3e093550a5128f5149f5388e3
+PODFILE CHECKSUM: 92aa51cedc755a3c5aacfc53212a9d523605e656
 
 COCOAPODS: 1.12.0

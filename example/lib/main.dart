@@ -46,12 +46,16 @@ class _MyAppState extends State<MyApp> {
       debugPrint(_platformVersion);
     });
 
-    _wireguardDartPlugin.setupTunnel(bundleId: "network.mysterium.wireguardDartExample.WireguardExtension");
+    _wireguardDartPlugin.setupTunnel(
+        bundleId: "network.mysterium.wireguardDartExample.tun");
   }
 
   @override
   Widget build(BuildContext context) {
-    void handleConnectPressed() => {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
+    const wireguardConfig = """
+    """;
+    void handleConnectPressed() =>
+        {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -68,10 +72,14 @@ class _MyAppState extends State<MyApp> {
                 TextButton(
                     onPressed: handleConnectPressed,
                     style: ButtonStyle(
-                        minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
-                        padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                        backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
-                        overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                        minimumSize: MaterialStateProperty.all<Size>(
+                            const Size(100, 50)),
+                        padding: MaterialStateProperty.all(
+                            const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                        backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.blueAccent),
+                        overlayColor: MaterialStateProperty.all<Color>(
+                            Colors.white.withOpacity(0.1))),
                     child: const Text(
                       'Connect',
                       style: TextStyle(color: Colors.white),
