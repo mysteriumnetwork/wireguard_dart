@@ -23,6 +23,10 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  Future<Map<String, String>> generatePrivateKey() {
+    throw UnimplementedError('generatePrivateKey() has not been implemented');
+  }
+
   Future<void> setupTunnel({required String bundleId}) {
     throw UnimplementedError('setupTunnel() has not been implemented');
   }

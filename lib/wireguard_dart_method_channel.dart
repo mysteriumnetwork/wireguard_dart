@@ -10,6 +10,12 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   final methodChannel = const MethodChannel('wireguard_dart');
 
   @override
+  Future<Map<String, String>> generatePrivateKey() async {
+    final Map<String, dynamic> result = await methodChannel.invokeMethod('generatePrivateKey');
+    return result.cast<String, String>();
+  }
+
+  @override
   Future<void> setupTunnel({required String bundleId}) async {
     await methodChannel
         .invokeMethod<void>('setupTunnel', {'bundleId': bundleId});

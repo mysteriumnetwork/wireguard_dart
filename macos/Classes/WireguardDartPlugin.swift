@@ -15,6 +15,13 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "generatePrivateKey":
+      let privateKey = PrivateKey()
+      let privateKeyResponse: [String: Any] = [
+          "privateKey": privateKey.base64Key,
+          "publicKey": privateKey.publicKey.base64Key,
+      ]
+      result(privateKeyResponse)
     case "setupTunnel":
       if let args = call.arguments as? Dictionary<String, Any>,
          let argBundleId = args["bundleId"] as? String {
