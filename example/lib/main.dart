@@ -46,16 +46,18 @@ class _MyAppState extends State<MyApp> {
       debugPrint(_platformVersion);
     });
 
-    _wireguardDartPlugin.setupTunnel(
-        bundleId: "network.mysterium.wireguardDartExample.tun");
+    _wireguardDartPlugin.setupTunnel(bundleId: "network.mysterium.wireguardDartExample.tun");
+  }
+
+  void generateKey() {
+    _wireguardDartPlugin.generatePrivateKey().then((value) => {print(value)});
   }
 
   @override
   Widget build(BuildContext context) {
     const wireguardConfig = """
     """;
-    void handleConnectPressed() =>
-        {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
+    void handleConnectPressed() => {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -65,26 +67,37 @@ class _MyAppState extends State<MyApp> {
           constraints: const BoxConstraints.expand(),
           padding: const EdgeInsets.all(16),
           child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text("dududu"),
-                TextButton(
-                    onPressed: handleConnectPressed,
-                    style: ButtonStyle(
-                        minimumSize: MaterialStateProperty.all<Size>(
-                            const Size(100, 50)),
-                        padding: MaterialStateProperty.all(
-                            const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                        backgroundColor:
-                            MaterialStateProperty.all<Color>(Colors.blueAccent),
-                        overlayColor: MaterialStateProperty.all<Color>(
-                            Colors.white.withOpacity(0.1))),
-                    child: const Text(
-                      'Connect',
-                      style: TextStyle(color: Colors.white),
-                    ))
-              ]),
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text("dududu"),
+              TextButton(
+                onPressed: handleConnectPressed,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Connect',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: generateKey,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Generate Key',
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
