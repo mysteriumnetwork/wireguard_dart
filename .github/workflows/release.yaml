@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+      - name: Install dependencies
+        run: pub get
+      - name: Determine version number
+        run: |
+          VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
+          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]]; then
+            if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
+              PR_TITLE=$(echo ${{ github.event.pull_request.title }} | tr '[:upper:]' '[:lower:]')
+              if [[ $PR_TITLE == *'[major]'* ]]; then
+                echo "Merging pull request with [major] in title. Bumping major version."
+                NEW_VERSION=$(echo $VERSION | awk -F. '{print $1+1".0.0"}')
+              elif [[ $PR_TITLE == *'[minor]'* ]]; then
+                echo "Merging pull request with [minor] in title. Bumping minor version."
+                NEW_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2+1".0"}')
+              else
+                echo "Merging pull request. Bumping patch version."
+                NEW_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+              fi
+              sed -i "s/version: $VERSION/version: $NEW_VERSION/" pubspec.yaml
+              git add pubspec.yaml
+              git commit -m "Bump version to $NEW_VERSION"
+            else
+              echo "Closing pull request without merging. No version bump required."
+            fi
+          fi
+      - name: Update CHANGELOG
+        run: |
+          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]]; then
+            if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
+              github_changelog_generator -t ${{ secrets.GITHUB_TOKEN }}
+              git add CHANGELOG.md
+              git commit -m "Update CHANGELOG"
+            fi
+          fi
+      - name: Create Github release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.NEW_VERSION }}
+          release_name: Release ${{ env.NEW_VERSION }}
+          body: |
+            Release ${{ env.NEW_VERSION }} of my Dart package.
+          draft: false
+          prerelease: false
