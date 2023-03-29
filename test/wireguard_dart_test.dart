@@ -15,7 +15,7 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   Future<void> disconnect() => Future.value();
 
   @override
-  Future<Map<String, String>> generatePrivateKey() {
+  Future<Map<String, String>> generateKeyPair() {
     return Future(() => Map.of({
           'privateKey': 'dududu',
           'publicKey': 'dududududu',
@@ -30,12 +30,12 @@ void main() {
     expect(initialPlatform, isInstanceOf<MethodChannelWireguardDart>());
   });
 
-  test('generatePrivateKey', () async {
+  test('generateKeyPair', () async {
     WireguardDart wireguardDartPlugin = WireguardDart();
     MockWireguardDartPlatform fakePlatform = MockWireguardDartPlatform();
     WireguardDartPlatform.instance = fakePlatform;
 
-    final result = await wireguardDartPlugin.generatePrivateKey();
+    final result = await wireguardDartPlugin.generateKeyPair();
     expect(result, isMap);
     expect(result, containsPair('privateKey', 'dududu'));
     expect(result, containsPair('publicKey', 'dududududu'));

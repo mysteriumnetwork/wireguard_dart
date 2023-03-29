@@ -1,3 +1,7 @@
+## 0.4
+
+* Rename `generatePrivateKey` -> `generateKeyPair`. Fix casting.
+
 ## 0.3.1
 
 * Fetch WireGuardKit from cocoapods trunk
