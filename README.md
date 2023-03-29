@@ -9,4 +9,3 @@ A flutter plugin to setup and control VPN connection via [Wireguard](https://www
 ## Usage
 
 To use this plugin, add `wireguard_dart` as a [dependency in your pubspec.yaml file](https://flutter.dev/platform-plugins/).
-
