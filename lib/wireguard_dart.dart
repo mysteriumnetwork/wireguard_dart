@@ -1,8 +1,8 @@
 import 'wireguard_dart_platform_interface.dart';
 
 class WireguardDart {
-  Future<Map<String, String>> generatePrivateKey() {
-    return WireguardDartPlatform.instance.generatePrivateKey();
+  Future<Map<String, String>> generateKeyPair() {
+    return WireguardDartPlatform.instance.generateKeyPair();
   }
 
   Future<void> setupTunnel({required String bundleId}) {

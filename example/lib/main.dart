@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void generateKey() {
-    _wireguardDartPlugin.generatePrivateKey().then((value) => {print(value)});
+    _wireguardDartPlugin.generateKeyPair().then((value) => {print(value)});
   }
 
   @override

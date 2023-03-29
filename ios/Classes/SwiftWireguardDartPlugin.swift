@@ -21,7 +21,7 @@ public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
-        case "generatePrivateKey":
+        case "generateKeyPair":
             let privateKey = PrivateKey()
             let privateKeyResponse: [String: Any] = [
                 "privateKey": privateKey.base64Key,
