@@ -60,6 +60,7 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    namespace 'network.mysterium.wireguard_dart_example'
 }
 
 flutter {
