@@ -2,7 +2,7 @@ group 'network.mysterium.wireguard_dart'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.7.20'
+    ext.kotlin_version = '1.8.21'
     repositories {
         google()
         mavenCentral()
@@ -25,15 +25,16 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 33
 
+    compileSdkVersion 33
+    namespace "network.mysterium.wireguard_dart"
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
 
     sourceSets {
@@ -45,7 +46,12 @@ android {
         targetSdkVersion 33
     }
 
-    dependencies {
-        implementation 'com.wireguard.android:tunnel:1.0.20230427'
-    }
+
+}
+
+dependencies {
+    implementation 'com.wireguard.android:tunnel:1.0.20230427'
+    implementation 'androidx.databinding:databinding-runtime:8.0.2'
+    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.fragment:fragment-ktx:1.5.7'
 }
