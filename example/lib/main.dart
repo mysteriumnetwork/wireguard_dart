@@ -71,6 +71,7 @@ class _MyAppState extends State<MyApp> {
 
   void connect() async {
     try {
+      // replace with valid config file before running
       await _wireguardDartPlugin.connect(cfg: """[Interface]
 PrivateKey = mC+tpn4rHNP1AINYzIqjTn7UwQM9gqsJCJTFdWYzyWM=
 Address = 10.181.57.196
