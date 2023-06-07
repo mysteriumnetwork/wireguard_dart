@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,14 +51,14 @@ class _MyAppState extends State<MyApp> {
   }
 
   void generateKey() {
-    _wireguardDartPlugin.generateKeyPair().then((value) => {print(value)});
+    _wireguardDartPlugin.generateKeyPair().then((value) => {developer.log('generated key', error: value)});
   }
 
   @override
   Widget build(BuildContext context) {
     const wireguardConfig = """
     """;
-    void handleConnectPressed() => {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
+    void handleConnectPressed() => _wireguardDartPlugin.connect(cfg: wireguardConfig);
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
