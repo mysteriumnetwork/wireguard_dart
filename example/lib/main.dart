@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,19 +46,56 @@ class _MyAppState extends State<MyApp> {
       _platformVersion = platformVersion;
       debugPrint(_platformVersion);
     });
-
-    _wireguardDartPlugin.setupTunnel(bundleId: "network.mysterium.wireguardDartExample.tun");
   }
 
   void generateKey() {
-    _wireguardDartPlugin.generateKeyPair().then((value) => {print(value)});
+    _wireguardDartPlugin.generateKeyPair().then((value) => {
+          developer.log(
+            'generated key',
+            error: value.toString(),
+          )
+        });
+  }
+
+  void setupTunnel() async {
+    try {
+      await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium");
+      debugPrint("setupTunnel success");
+    } catch (e) {
+      developer.log(
+        'setupTunnel',
+        error: e.toString(),
+      );
+    }
+  }
+
+  void connect() async {
+    try {
+      // replace with valid config file before running
+      await _wireguardDartPlugin.connect(cfg: """""");
+      debugPrint("Connect success");
+    } catch (e) {
+      developer.log(
+        'Connect',
+        error: e.toString(),
+      );
+    }
+  }
+
+  void disconnect() async {
+    try {
+      await _wireguardDartPlugin.disconnect();
+      debugPrint("disconnect success");
+    } catch (e) {
+      developer.log(
+        'disconnect',
+        error: e.toString(),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const wireguardConfig = """
-    """;
-    void handleConnectPressed() => {_wireguardDartPlugin.connect(cfg: wireguardConfig)};
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -70,9 +108,34 @@ class _MyAppState extends State<MyApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text("dududu"),
               TextButton(
-                onPressed: handleConnectPressed,
+                onPressed: generateKey,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Generate Key',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: setupTunnel,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Setup Tunnel',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: connect,
                 style: ButtonStyle(
                     minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
                     padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
@@ -85,17 +148,18 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               TextButton(
-                onPressed: generateKey,
+                onPressed: disconnect,
                 style: ButtonStyle(
                     minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
                     padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
                     overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
-                  'Generate Key',
+                  'Disconnect',
                   style: TextStyle(color: Colors.white),
                 ),
-              )
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
