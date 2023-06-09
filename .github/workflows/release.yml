@@ -8,14 +8,22 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+      - name: "Cache - Flutter"
+        uses: actions/cache@v3
+        env:
+          flutter_linux_path: "/opt/hostedtoolcache/flutter"
+          flutter_macos_path: "/Users/runner/hostedtoolcache/flutter"
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Setup Dart SDK
-        uses: dart-lang/setup-dart@v1
+          path: ${{ env.flutter_linux_path }}
+          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.flutter_version }}
+          # channel: beta
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
       - name: Determine version number
         run: |
           VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
