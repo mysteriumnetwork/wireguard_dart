@@ -15,7 +15,7 @@ jobs:
       - name: Setup Dart SDK
         uses: dart-lang/setup-dart@v1
       - name: Install dependencies
-        run: flutter pub get
+        run: dart pub get
       - name: Determine version number
         run: |
           VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
