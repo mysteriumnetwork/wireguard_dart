@@ -26,6 +26,8 @@ jobs:
         run: flutter pub get
       - name: Determine version number
         run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
           if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
             PR_TITLE=$(echo ${{ github.event.pull_request.title }} | tr '[:upper:]' '[:lower:]')
