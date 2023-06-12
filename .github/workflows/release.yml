@@ -10,6 +10,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
       - name: Install dependencies
         run: flutter pub get
       - name: Determine version number
