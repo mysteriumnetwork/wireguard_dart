@@ -10,24 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
-      - name: "Cache - Flutter"
-        uses: actions/cache@v3
-        env:
-          flutter_linux_path: "/opt/hostedtoolcache/flutter"
-          flutter_macos_path: "/Users/runner/hostedtoolcache/flutter"
-        with:
-          path: ${{ env.flutter_linux_path }}
-          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.flutter_version }}
-          # channel: beta
       - name: Install dependencies
         run: flutter pub get
       - name: Determine version number
         run: |
-          git config --global user.name "${GITHUB_ACTOR}"
-          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
           if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
             PR_TITLE=$(echo ${{ github.event.pull_request.title }} | tr '[:upper:]' '[:lower:]')
@@ -47,13 +35,15 @@ jobs:
           else
             echo "Closing pull request without merging. No version bump required."
           fi
-      - name: Update CHANGELOG
+      - name: Generate changelog
+        uses: charmixer/auto-changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit & push changelog
         run: |
-          if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
-            github_changelog_generator -t ${{ secrets.GITHUB_TOKEN }}
-            git add CHANGELOG.md
-            git commit -m "Update CHANGELOG"
-          fi
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && git push || echo "No changes to CHANGELOG.md"
       - name: Create Github release
         uses: actions/create-release@v1
         env:
