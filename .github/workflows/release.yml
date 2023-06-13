@@ -5,17 +5,19 @@ on:
     types: [closed]
 
 env:
-  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-  GITHUB_USER: MysteriumTeam
-  GITHUB_USER_EMAIL: core-services@mysterium.network
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  GH_USER: MysteriumTeam
+  GH_EMAIL: core-services@mysterium.network
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: git config --global user.name "${GITHUB_USER}"
-      - run: git config --global user.email "${GITHUB_USER_EMAIL}"
+        with:
+          token: ${{ env.GH_TOKEN }}
+      - run: git config --global user.name "${env.GH_USER}"
+      - run: git config --global user.email "${env.GH_EMAIL}"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -45,11 +47,17 @@ jobs:
           fi
       - name: Generate changelog
         uses: charmixer/auto-changelog-action@v1
-      - name: Commit & push changelog
-        run: git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && git push || echo "No changes to CHANGELOG.md"
+        with:
+          token: ${{ env.GH_TOKEN }}
+      - name: Commit changelog
+        run: git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && echo "push=true" >> $GITHUB_ENV || echo "No changes to CHANGELOG.md"
+      - name: Push changelog
+        if: env.push == 'true'
+        run: git push "https://${env.GH_USER}:${env.GH_TOKEN}@github.com/$GITHUB_REPOSITORY.git" HEAD:master
       - name: Create Github release
         uses: softprops/action-gh-release@v1
         if: ${{ github.event.pull_request.merged == 'true' }}
         with:
+          token: ${{ env.GH_TOKEN }}
           tag_name: ${{ env.NEW_VERSION }}
           generate_release_notes: true
