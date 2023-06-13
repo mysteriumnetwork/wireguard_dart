@@ -4,11 +4,18 @@ on:
   pull_request_target:
     types: [closed]
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  GITHUB_USER: MysteriumTeam
+  GITHUB_USER_EMAIL: core-services@mysterium.network
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: git config --global user.name "${GITHUB_USER}"
+      - run: git config --global user.email "${GITHUB_USER_EMAIL}"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -17,8 +24,6 @@ jobs:
         run: flutter pub get
       - name: Determine version number
         run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           VERSION=$(grep 'version: ' pubspec.yaml | awk '{print $2}')
           if [[ ${{ github.event.pull_request.merged }} == 'true' ]]; then
             PR_TITLE=$(echo ${{ github.event.pull_request.title }} | tr '[:upper:]' '[:lower:]')
@@ -40,22 +45,11 @@ jobs:
           fi
       - name: Generate changelog
         uses: charmixer/auto-changelog-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Commit & push changelog
-        run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && git push || echo "No changes to CHANGELOG.md"
+        run: git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && git push || echo "No changes to CHANGELOG.md"
       - name: Create Github release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         if: ${{ github.event.pull_request.merged == 'true' }}
         with:
           tag_name: ${{ env.NEW_VERSION }}
-          release_name: Release ${{ env.NEW_VERSION }}
-          body: |
-            Release ${{ env.NEW_VERSION }} of my Dart package.
-          draft: false
-          prerelease: false
+          generate_release_notes: true
