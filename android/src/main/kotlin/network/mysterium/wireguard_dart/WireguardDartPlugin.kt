@@ -179,7 +179,12 @@ class WireguardDartPlugin: FlutterPlugin, MethodCallHandler ,ActivityAware,Plugi
         Log.e(TAG, "disconnect - BackendException - ERROR - ${e.reason} ${e.stackTrace}")
         flutterError(result, e.reason.toString())
       } catch (e: Throwable) {
-        Log.e(TAG, "handleSetState - Can't disconnect from tunnel: ${e.message}, ${Log.getStackTraceString(e)}")
+        Log.e(TAG, "disconnect - Can't disconnect from tunnel: ${e.message}, ${Log.getStackTraceString(e)}")
+        flutterError(result, e.message.toString())
+      }
+      catch (e: Exception)
+      {
+        Log.e(TAG, "disconnect -  ${e.message}, ${Log.getStackTraceString(e)}")
         flutterError(result, e.message.toString())
       }
     }
@@ -192,6 +197,7 @@ class WireguardDartPlugin: FlutterPlugin, MethodCallHandler ,ActivityAware,Plugi
         if(!havePermission)
         {
           checkPermission()
+          throw  Exception("Permissions are not given")
         }
         val inputStream = ByteArrayInputStream(cfg.toByteArray())
         config =  com.wireguard.config.Config.parse(inputStream)
@@ -217,6 +223,10 @@ class WireguardDartPlugin: FlutterPlugin, MethodCallHandler ,ActivityAware,Plugi
         Log.e(TAG, "connect - Can't connect to tunnel: $e, ${Log.getStackTraceString(e)}")
         flutterError(result, e.message.toString())
       }
+      catch (e: Exception) {
+        Log.e(TAG, "connect -  $e, ${Log.getStackTraceString(e)}")
+        flutterError(result, e.message.toString())
+      }
     }
   }
 
@@ -226,11 +236,11 @@ class WireguardDartPlugin: FlutterPlugin, MethodCallHandler ,ActivityAware,Plugi
       if (Tunnel.isNameInvalid(bundleId))
       {
         flutterError(result,"Invalid Name")
+        return@launch
       }
       tunnelName = bundleId
       checkPermission()
       result.success(null)
-      return@launch
     }
   }
 
