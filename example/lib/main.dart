@@ -60,10 +60,10 @@ class _MyAppState extends State<MyApp> {
   void setupTunnel() async {
     try {
       await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium");
-      debugPrint("setupTunnel success");
+      debugPrint("setup tunnel success");
     } catch (e) {
       developer.log(
-        'setupTunnel',
+        'setup tunnel',
         error: e.toString(),
       );
     }
