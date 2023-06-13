@@ -42,12 +42,10 @@ jobs:
             sed -i "s/version: $VERSION/version: $NEW_VERSION/" pubspec.yaml
             git add pubspec.yaml
             git commit -m "Bump version to $NEW_VERSION"
+            echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
           else
             echo "Closing pull request without merging. No version bump required."
           fi
-      - name: Push changelog
-        if: env.push == 'true'
-        run: git push "https://${GH_USER}:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:master
       - name: Create Github release
         uses: softprops/action-gh-release@v1
         with:
@@ -60,3 +58,6 @@ jobs:
           token: ${{ env.GH_TOKEN }}
       - name: Commit changelog
         run: git add CHANGELOG.md && git commit -m 'Update CHANGELOG' && echo "push=true" >> $GITHUB_ENV || echo "No changes to CHANGELOG"
+      - name: Push changelog
+        if: env.push == 'true'
+        run: git push "https://${GH_USER}:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:master
