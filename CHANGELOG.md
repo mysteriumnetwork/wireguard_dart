@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.2) (2023-06-14)
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.1...0.4.2)
+
+**Merged pull requests:**
+
+- Android bugs fixes and improvements [\#26](https://github.com/mysteriumnetwork/wireguard_dart/pull/26) ([KristijanMitrik](https://github.com/KristijanMitrik))
+
 ## [0.4.1](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.1) (2023-06-13)
 
 [Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.0...0.4.1)
