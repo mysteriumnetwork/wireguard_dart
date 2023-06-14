@@ -144,21 +144,13 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                         stats
                     )
                 )
-                Log.i(TAG, "statistics - ${stats.totalDownload} ${stats.totalUpload}")
+                Log.i(TAG, "Statistics - ${stats.totalDownload} ${stats.totalUpload}")
 
             } catch (e: BackendException) {
-                Log.e(
-                    TAG,
-                    "handleGetStats - BackendException - ERROR - ${e.reason} ${
-                        Log.getStackTraceString(e)
-                    }"
-                )
+                Log.e(TAG, "Statistics - BackendException - ERROR - ${e.reason} ", e)
                 flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
-                Log.e(
-                    TAG,
-                    "handleGetStats - Can't get stats: ${e.message} ${Log.getStackTraceString(e)}"
-                )
+                Log.e(TAG, "Statistics - Can't get stats: ${e.message}", e)
                 flutterError(result, e.message.toString())
             }
         }
@@ -177,29 +169,18 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                         scope.launch(Dispatchers.Main) {
                             Log.i(TAG, "onStateChange - $state")
                             channel.invokeMethod(
-                                "onStateChange",
-                                state == Tunnel.State.UP
+                                "onStateChange", state == Tunnel.State.UP
                             )
                         }
-                    },
-                    Tunnel.State.DOWN,
-                    config
+                    }, Tunnel.State.DOWN, config
                 )
-                Log.i(TAG, "disconnect - success!")
+                Log.i(TAG, "Disconnect - success!")
                 flutterSuccess(result, "")
             } catch (e: BackendException) {
-                Log.e(TAG, "disconnect - BackendException - ERROR - ${e.reason} ${e.stackTrace}")
+                Log.e(TAG, "Disconnect - BackendException - ERROR - ${e.reason}", e)
                 flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
-                Log.e(
-                    TAG,
-                    "disconnect - Can't disconnect from tunnel: ${e.message}, ${
-                        Log.getStackTraceString(e)
-                    }"
-                )
-                flutterError(result, e.message.toString())
-            } catch (e: Exception) {
-                Log.e(TAG, "disconnect -  ${e.message}, ${Log.getStackTraceString(e)}")
+                Log.e(TAG, "Disconnect - Can't disconnect from tunnel: ${e.message}")
                 flutterError(result, e.message.toString())
             }
         }
@@ -220,27 +201,18 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                         scope.launch(Dispatchers.Main) {
                             Log.i(TAG, "onStateChange - $state")
                             channel.invokeMethod(
-                                "onStateChange",
-                                state == Tunnel.State.UP
+                                "onStateChange", state == Tunnel.State.UP
                             )
                         }
-                    },
-                    Tunnel.State.UP,
-                    config
+                    }, Tunnel.State.UP, config
                 )
-                Log.i(TAG, "connect - success!")
+                Log.i(TAG, "Connect - success!")
                 flutterSuccess(result, "")
             } catch (e: BackendException) {
-                Log.e(
-                    TAG,
-                    "connect - BackendException - ERROR - ${e.reason} ${Log.getStackTraceString(e)}"
-                )
+                Log.e(TAG, "Connect - BackendException - ERROR - ${e.reason}", e)
                 flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
-                Log.e(TAG, "connect - Can't connect to tunnel: $e, ${Log.getStackTraceString(e)}")
-                flutterError(result, e.message.toString())
-            } catch (e: Exception) {
-                Log.e(TAG, "connect -  $e, ${Log.getStackTraceString(e)}")
+                Log.e(TAG, "Connect - Can't connect to tunnel: $e", e)
                 flutterError(result, e.message.toString())
             }
         }
@@ -293,8 +265,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 typealias StateChangeCallback = (Tunnel.State) -> Unit
 
 class WireguardTunnel(
-    private val name: String,
-    private val onStateChanged: StateChangeCallback? = null
+    private val name: String, private val onStateChanged: StateChangeCallback? = null
 ) : Tunnel {
 
     override fun getName() = name
