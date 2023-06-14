@@ -51,7 +51,7 @@ class _MyAppState extends State<MyApp> {
   void generateKey() {
     _wireguardDartPlugin.generateKeyPair().then((value) => {
           developer.log(
-            'generated key',
+            'Generated key',
             error: value.toString(),
           )
         });
@@ -60,10 +60,10 @@ class _MyAppState extends State<MyApp> {
   void setupTunnel() async {
     try {
       await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium");
-      debugPrint("setup tunnel success");
+      debugPrint("Setup tunnel success");
     } catch (e) {
       developer.log(
-        'setup tunnel',
+        'Setup tunnel',
         error: e.toString(),
       );
     }
@@ -85,10 +85,10 @@ class _MyAppState extends State<MyApp> {
   void disconnect() async {
     try {
       await _wireguardDartPlugin.disconnect();
-      debugPrint("disconnect success");
+      debugPrint("Disconnect success");
     } catch (e) {
       developer.log(
-        'disconnect',
+        'Disconnect',
         error: e.toString(),
       );
     }
