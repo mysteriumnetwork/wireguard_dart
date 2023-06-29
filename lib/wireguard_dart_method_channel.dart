@@ -11,7 +11,8 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<Map<String, String>> generateKeyPair() async {
-    return Map<String, String>.from(await methodChannel.invokeMethod('generateKeyPair'));
+    var res = await methodChannel.invokeMethod('generateKeyPair');
+    return Map<String, String>.from(res);
   }
 
   @override
