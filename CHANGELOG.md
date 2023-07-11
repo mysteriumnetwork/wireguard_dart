@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.3](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.3) (2023-07-11)
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.2...0.4.3)
+
+**Merged pull requests:**
+
+- Setup cmake; generate keypair on windows \[minor\] [\#27](https://github.com/mysteriumnetwork/wireguard_dart/pull/27) ([tadaskay](https://github.com/tadaskay))
+
 ## [0.4.2](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.2) (2023-06-14)
 
 [Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.1...0.4.2)
