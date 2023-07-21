@@ -25,6 +25,76 @@ class ServiceControlException : public std::exception {
   }
 };
 
+void ServiceControl::Create(CreateArgs args) {
+  SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+  if (service_manager == NULL) {
+    throw ServiceControlException("Failed to open service manager", GetLastError());
+  }
+
+  SC_HANDLE service = OpenService(service_manager, &service_name_[0], SC_MANAGER_ALL_ACCESS);
+  if (service != NULL) {
+    DeleteService(service);
+    CloseServiceHandle(service);
+  }
+
+  service = CreateService(service_manager,                   // SCM database
+                          &service_name_[0],                 // name of service
+                          &service_name_[0],                 // service name to display
+                          SERVICE_ALL_ACCESS,                // desired access
+                          SERVICE_WIN32_OWN_PROCESS,         // service type
+                          SERVICE_DEMAND_START,              // start type
+                          SERVICE_ERROR_NORMAL,              // error control type
+                          args.executable_and_args.c_str(),  // path to service's binary
+                          NULL,                              // no load ordering group
+                          NULL,                              // no tag identifier
+                          args.dependencies.c_str(),
+                          NULL,  // LocalSystem account
+                          NULL);
+  if (service == NULL) {
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to create the service", GetLastError());
+  }
+
+  auto sid_type = SERVICE_SID_TYPE_UNRESTRICTED;
+  if (!ChangeServiceConfig2(service, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_type)) {
+    CloseServiceHandle(service);
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to configure servivce SID type", GetLastError());
+  }
+
+  SERVICE_DESCRIPTION description = {&args.description[0]};
+  if (!ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &description)) {
+    CloseServiceHandle(service);
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to configure service description", GetLastError());
+  }
+
+  CloseServiceHandle(service);
+  CloseServiceHandle(service_manager);
+}
+
+void ServiceControl::Start() {
+  SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+  if (service_manager == NULL) {
+    throw ServiceControlException("Failed to open service manager", GetLastError());
+  }
+
+  SC_HANDLE service = OpenService(service_manager, this->service_name_.c_str(), SC_MANAGER_ALL_ACCESS);
+  if (service == NULL) {
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to start: service does not exist");
+  }
+
+  if (!StartService(service, 0, NULL)) {
+    CloseServiceHandle(service);
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to start the service", GetLastError());
+  }
+
+  CloseServiceHandle(service);
+  CloseServiceHandle(service_manager);
+}
+
 void ServiceControl::Stop() {
   SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
   if (service_manager == NULL) {

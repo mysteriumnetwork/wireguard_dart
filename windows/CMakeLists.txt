@@ -88,5 +88,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 set(wireguard_dart_bundled_libraries
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/wireguard/amd64/wireguard.dll"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/tunnel/amd64/tunnel.dll"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/wireguard_svc/amd64/wireguard_svc.exe"
   PARENT_SCOPE
 )
