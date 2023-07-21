@@ -10,6 +10,13 @@
 #include <memory>
 #include <sstream>
 
+#include "config_writer.h"
+#include "key_generator.h"
+#include "service_control.h"
+#include "tunnel.h"
+#include "utils.h"
+#include "wireguard.h"
+
 namespace wireguard_dart {
 
 // static
@@ -40,6 +47,25 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     return_value[flutter::EncodableValue("publicKey")] = flutter::EncodableValue(public_private_keypair.first);
     return_value[flutter::EncodableValue("privateKey")] = flutter::EncodableValue(public_private_keypair.second);
     result->Success(flutter::EncodableValue(return_value));
+    return;
+  }
+
+  if (call.method_name() == "nativeInit") {
+    // Disable packet forwarding that conflicts with WireGuard
+    ServiceControl remoteAccessService = ServiceControl(L"RemoteAccess");
+    try {
+      remoteAccessService.Stop();
+    } catch (std::exception &e) {
+      result->Error(std::string("Could not stop packet forwarding: ").append(e.what()));
+      return;
+    }
+    try {
+      remoteAccessService.Disable();
+    } catch (std::exception &e) {
+      result->Error(std::string("Could not disable packet forwarding: ").append(e.what()));
+      return;
+    }
+    result->Success();
     return;
   }
   }

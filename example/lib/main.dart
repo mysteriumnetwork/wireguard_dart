@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,22 @@ import 'package:wireguard_dart/wireguard_dart.dart';
 
 void main() {
   runApp(const MyApp());
+}
+
+void nativeInitBackground(List<Object> args) async {
+  final rootIsolateToken = args[0] as RootIsolateToken;
+  BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+
+  try {
+    await WireguardDart().nativeInit();
+    debugPrint('Native init done');
+  } catch (e) {
+    debugPrint('Native init error');
+    developer.log(
+      'Native init',
+      error: e.toString(),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -57,9 +74,14 @@ class _MyAppState extends State<MyApp> {
         });
   }
 
+  void nativeInit() async {
+    RootIsolateToken rootIsolateToken = RootIsolateToken.instance!;
+    Isolate.spawn(nativeInitBackground, [rootIsolateToken]);
+  }
+
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium");
+      await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium", win32ServiceName: "MysteriumVPN_Wireguard");
       debugPrint("Setup tunnel success");
     } catch (e) {
       developer.log(
@@ -117,6 +139,19 @@ class _MyAppState extends State<MyApp> {
                     overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Generate Key',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: nativeInit,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Native initialization',
                   style: TextStyle(color: Colors.white),
                 ),
               ),
