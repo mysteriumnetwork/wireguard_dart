@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.4) (2023-07-21)
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.3...0.4.4)
+
+**Merged pull requests:**
+
+- Windows wireguard service support [\#29](https://github.com/mysteriumnetwork/wireguard_dart/pull/29) ([tadaskay](https://github.com/tadaskay))
+
 ## [0.4.3](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.3) (2023-07-11)
 
 [Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.2...0.4.3)
