@@ -5,8 +5,12 @@ import 'package:wireguard_dart/wireguard_dart_platform_interface.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 
 class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements WireguardDartPlatform {
+
   @override
-  Future<void> setupTunnel({required String bundleId}) => Future.value();
+  Future<void> nativeInit() => Future.value();
+  
+  @override
+  Future<void> setupTunnel({required String bundleId, String? win32ServiceName}) => Future.value();
 
   @override
   Future<void> connect({required String cfg}) => Future.value();

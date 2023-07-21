@@ -27,7 +27,11 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     throw UnimplementedError('generateKeyPair() has not been implemented');
   }
 
-  Future<void> setupTunnel({required String bundleId}) {
+  Future<void> nativeInit() {
+    throw UnimplementedError('nativeInit() has not been implemented');
+  }
+
+  Future<void> setupTunnel({required String bundleId, String? win32ServiceName}) {
     throw UnimplementedError('setupTunnel() has not been implemented');
   }
 

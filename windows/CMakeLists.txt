@@ -22,6 +22,14 @@ set(PLUGIN_NAME "wireguard_dart_plugin")
 list(APPEND PLUGIN_SOURCES
   "wireguard_dart_plugin.cpp"
   "wireguard_dart_plugin.h"
+  "key_generator.cpp"
+  "key_generator.h"
+  "config_writer.cpp"
+  "config_writer.h"
+  "service_control.cpp"
+  "service_control.h"
+  "utils.cpp"
+  "utils.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -80,5 +88,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 set(wireguard_dart_bundled_libraries
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/wireguard/amd64/wireguard.dll"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/tunnel/amd64/tunnel.dll"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/wireguard_svc/amd64/wireguard_svc.exe"
   PARENT_SCOPE
 )

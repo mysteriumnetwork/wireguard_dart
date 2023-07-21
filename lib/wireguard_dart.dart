@@ -5,8 +5,12 @@ class WireguardDart {
     return WireguardDartPlatform.instance.generateKeyPair();
   }
 
-  Future<void> setupTunnel({required String bundleId}) {
-    return WireguardDartPlatform.instance.setupTunnel(bundleId: bundleId);
+  Future<void> nativeInit() {
+    return WireguardDartPlatform.instance.nativeInit();
+  }
+
+  Future<void> setupTunnel({required String bundleId, String? win32ServiceName}) {
+    return WireguardDartPlatform.instance.setupTunnel(bundleId: bundleId, win32ServiceName: win32ServiceName);
   }
 
   Future<void> connect({required String cfg}) {
