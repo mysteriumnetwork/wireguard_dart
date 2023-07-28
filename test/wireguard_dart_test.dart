@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:wireguard_dart/connection_status.dart';
+import 'package:wireguard_dart/key_pair.dart';
 import 'package:wireguard_dart/wireguard_dart_method_channel.dart';
 import 'package:wireguard_dart/wireguard_dart_platform_interface.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
@@ -20,11 +21,8 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   Future<void> disconnect() => Future.value();
 
   @override
-  Future<Map<String, String>> generateKeyPair() {
-    return Future(() => Map.of({
-          'privateKey': 'dududu',
-          'publicKey': 'dududududu',
-        }));
+  Future<KeyPair> generateKeyPair() {
+    return Future(() => KeyPair("dududududu", "dududu"));
   }
 
   @override
@@ -44,8 +42,7 @@ void main() {
     WireguardDartPlatform.instance = fakePlatform;
 
     final result = await wireguardDartPlugin.generateKeyPair();
-    expect(result, isMap);
-    expect(result, containsPair('privateKey', 'dududu'));
-    expect(result, containsPair('publicKey', 'dududududu'));
+    expect(result.publicKey, equals('dududududu'));
+    expect(result.privateKey, equals('dududu'));
   });
 }

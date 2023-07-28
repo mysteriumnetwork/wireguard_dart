@@ -1,8 +1,10 @@
+import 'package:wireguard_dart/key_pair.dart';
+
 import 'connection_status.dart';
 import 'wireguard_dart_platform_interface.dart';
 
 class WireguardDart {
-  Future<Map<String, String>> generateKeyPair() {
+  Future<KeyPair> generateKeyPair() {
     return WireguardDartPlatform.instance.generateKeyPair();
   }
 

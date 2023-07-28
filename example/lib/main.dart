@@ -67,13 +67,16 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void generateKey() {
-    _wireguardDartPlugin.generateKeyPair().then((value) => {
-          developer.log(
-            'Generated key',
-            error: value.toString(),
-          )
-        });
+  void generateKey() async {
+    try {
+      var keyPair = await _wireguardDartPlugin.generateKeyPair();
+      debugPrint('Generated key pair: $keyPair');
+    } catch (e) {
+      developer.log(
+        'Generated key',
+        error: e,
+      );
+    }
   }
 
   void nativeInit() async {
@@ -88,7 +91,7 @@ class _MyAppState extends State<MyApp> {
     } catch (e) {
       developer.log(
         'Setup tunnel',
-        error: e.toString(),
+        error: e,
       );
     }
   }

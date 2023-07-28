@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
+import 'package:wireguard_dart/key_pair.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
@@ -11,9 +12,12 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   final methodChannel = const MethodChannel('wireguard_dart');
 
   @override
-  Future<Map<String, String>> generateKeyPair() async {
+  Future<KeyPair> generateKeyPair() async {
     var result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
-    return result;
+    if (!result.containsKey('publicKey') || !result.containsKey('privateKey')) {
+      throw StateError('Could not generate keypair');
+    };
+    return KeyPair(result['publicKey']!, result['privateKey']!);
   }
 
   @override

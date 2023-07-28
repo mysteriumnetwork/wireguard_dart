@@ -1,6 +1,7 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'connection_status.dart';
+import 'key_pair.dart';
 import 'wireguard_dart_method_channel.dart';
 
 abstract class WireguardDartPlatform extends PlatformInterface {
@@ -24,7 +25,7 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<Map<String, String>> generateKeyPair() {
+  Future<KeyPair> generateKeyPair() {
     throw UnimplementedError('generateKeyPair() has not been implemented');
   }
 
