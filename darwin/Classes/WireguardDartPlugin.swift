@@ -103,7 +103,6 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 }
             }
         case "disconnect":
-            Self.logger.debug("handle disconnect")
             guard let mgr = vpnManager else {
                 Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
                 result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
@@ -113,6 +112,24 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 mgr.connection.stopVPNTunnel()
                 Self.logger.debug("Stop tunnel OK")
                 result("")
+            }
+        case "status":
+            guard let mgr = vpnManager else {
+                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
+                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                return
+            }
+            Task {
+                let mappedStatus: String = {
+                    switch vpnStatus {
+                    case .connected: return "connected"
+                    case .disconnected:return  "disconnected"
+                    case .connecting: return "connecting"
+                    case .disconnecting: return "disconnecting"
+                    default: return "unknown"
+                    }
+                }()
+                result(["status": mappedStatus])
             }
         default:
             result(FlutterMethodNotImplemented)

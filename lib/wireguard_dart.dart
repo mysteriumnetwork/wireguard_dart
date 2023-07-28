@@ -1,3 +1,4 @@
+import 'connection_status.dart';
 import 'wireguard_dart_platform_interface.dart';
 
 class WireguardDart {
@@ -19,5 +20,9 @@ class WireguardDart {
 
   Future<void> disconnect() {
     return WireguardDartPlatform.instance.disconnect();
+  }
+
+  Future<ConnectionStatus> status() {
+    return WireguardDartPlatform.instance.status();
   }
 }

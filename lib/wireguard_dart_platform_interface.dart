@@ -1,5 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+import 'connection_status.dart';
 import 'wireguard_dart_method_channel.dart';
 
 abstract class WireguardDartPlatform extends PlatformInterface {
@@ -41,5 +42,9 @@ abstract class WireguardDartPlatform extends PlatformInterface {
 
   Future<void> disconnect() {
     throw UnimplementedError('disconnect() has not been implemented');
+  }
+
+  Future<ConnectionStatus> status() {
+    throw UnimplementedError('status() has not been implemented');
   }
 }

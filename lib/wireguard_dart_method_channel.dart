@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:wireguard_dart/connection_status.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
@@ -11,8 +12,8 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<Map<String, String>> generateKeyPair() async {
-    var res = await methodChannel.invokeMethod('generateKeyPair');
-    return Map<String, String>.from(res);
+    var result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
+    return result;
   }
 
   @override
@@ -37,5 +38,11 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   @override
   Future<void> disconnect() async {
     await methodChannel.invokeMethod<void>('disconnect');
+  }
+
+  @override
+  Future<ConnectionStatus> status() async {
+    var result = await methodChannel.invokeMapMethod<String, String>('status') ?? <String, String>{};
+    return ConnectionStatus.fromString(result['status'] ?? '');
   }
 }

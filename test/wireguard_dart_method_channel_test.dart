@@ -11,13 +11,15 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
-        case 'connect':
-          return null;
-        case 'disconnect':
-          return null;
         case 'generateKeyPair':
           return null;
         case 'setupTunnel':
+          return null;
+        case 'status':
+          return null;
+        case 'connect':
+          return null;
+        case 'disconnect':
           return null;
         default:
           throw MissingPluginException();
