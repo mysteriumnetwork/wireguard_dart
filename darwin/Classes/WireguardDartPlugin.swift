@@ -1,21 +1,34 @@
+#if os(iOS)
 import Flutter
 import UIKit
+#elseif os(macOS)
+import FlutterMacOS
+import Cocoa
+#else
+#error("Unsupported platform")
+#endif
+
 import WireGuardKit
 import NetworkExtension
 import os
 
-public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
+public class WireguardDartPlugin: NSObject, FlutterPlugin {
 
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier!,
-        category: String(describing: SwiftWireguardDartPlugin.self)
+        category: String(describing: WireguardDartPlugin.self)
     )
 
     var bundleId: String?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: registrar.messenger())
-        let instance = SwiftWireguardDartPlugin()
+        #if os(iOS)
+        let messenger = registrar.messenger()
+        #else
+        let messenger = registrar.messenger
+        #endif
+        let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
+        let instance = WireguardDartPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 

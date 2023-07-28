@@ -1,13 +1,14 @@
 PODS:
   - FlutterMacOS (1.0.0)
   - wireguard_dart (0.0.1):
+    - Flutter
     - FlutterMacOS
-    - WireGuardKit
+    - WireGuardKit (= 0.3)
   - WireGuardKit (0.3)
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - wireguard_dart (from `Flutter/ephemeral/.symlinks/plugins/wireguard_dart/macos`)
+  - wireguard_dart (from `Flutter/ephemeral/.symlinks/plugins/wireguard_dart/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -17,11 +18,11 @@ EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
   wireguard_dart:
-    :path: Flutter/ephemeral/.symlinks/plugins/wireguard_dart/macos
+    :path: Flutter/ephemeral/.symlinks/plugins/wireguard_dart/darwin
 
 SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  wireguard_dart: b4d9de8f67252b11768a7977a4ad361302e743b7
+  wireguard_dart: e9f4586e6433f14a16864e80abbdb63239e1aa12
   WireGuardKit: 8b9e7f28441b67aafe60d59c15b8c70bed5ab092
 
 PODFILE CHECKSUM: be01cccb06a368ce7b4626ad8fc3db0759a91741

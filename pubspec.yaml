@@ -5,8 +5,8 @@ homepage: https://github.com/mysteriumnetwork/wireguard_dart
 repository: https://github.com/mysteriumnetwork/wireguard_dart
 
 environment:
-  sdk: '>=2.19.0 <3.0.0'
-  flutter: ">=2.5.0"
+  sdk: '^3.0.0'
+  flutter: ">=3.7.0"
 
 dependencies:
   flutter:
@@ -26,9 +26,11 @@ flutter:
         pluginClass: WireguardDartPlugin
       ios:
         pluginClass: WireguardDartPlugin
+        sharedDarwinSource: true
       linux:
         pluginClass: WireguardDartPlugin
       macos:
         pluginClass: WireguardDartPlugin
+        sharedDarwinSource: true
       windows:
         pluginClass: WireguardDartPluginCApi
