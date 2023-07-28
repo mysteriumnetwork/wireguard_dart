@@ -30,7 +30,7 @@ class PacketTunnelProvider: WireGuardTunnelProvider {
     }()
 
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
-        super.startTunnel(completionHandler: completionHandler)
+        super.startTunnel(options: options, completionHandler: completionHandler)
     }
     
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
