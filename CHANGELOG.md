@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.5](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.5) (2023-08-04)
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.4...0.4.5)
+
+**Merged pull requests:**
+
+- 10 tunnel status [\#30](https://github.com/mysteriumnetwork/wireguard_dart/pull/30) ([tadaskay](https://github.com/tadaskay))
+
 ## [0.4.4](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.4) (2023-07-21)
 
 [Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.3...0.4.4)
