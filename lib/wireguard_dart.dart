@@ -27,4 +27,8 @@ class WireguardDart {
   Future<ConnectionStatus> status() {
     return WireguardDartPlatform.instance.status();
   }
+
+  Stream<ConnectionStatusChanged> onStatusChanged() {
+    return WireguardDartPlatform.instance.onStatusChanged();
+  }
 }

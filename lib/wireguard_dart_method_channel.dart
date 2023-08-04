@@ -10,6 +10,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('wireguard_dart');
+  final statusChannel = const EventChannel('wireguard_dart.status');
 
   @override
   Future<KeyPair> generateKeyPair() async {
@@ -48,5 +49,17 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   Future<ConnectionStatus> status() async {
     var result = await methodChannel.invokeMapMethod<String, String>('status') ?? <String, String>{};
     return ConnectionStatus.fromString(result['status'] ?? '');
+  }
+
+  @override
+  Stream<ConnectionStatusChanged> onStatusChanged() {
+    return statusChannel.receiveBroadcastStream().map((event) {
+        var statusStr = "";
+        if (event is Map) {
+          statusStr = event['status'];
+        }
+        var status = ConnectionStatus.fromString(statusStr);
+      return ConnectionStatusChanged(status);
+    }).cast();
   }
 }

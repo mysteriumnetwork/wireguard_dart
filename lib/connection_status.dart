@@ -10,3 +10,9 @@ enum ConnectionStatus {
         .firstWhere((v) => v.name == s, orElse: () => ConnectionStatus.unknown);
   }
 }
+
+class ConnectionStatusChanged {
+  final ConnectionStatus status;
+
+  ConnectionStatusChanged(this.status);
+}

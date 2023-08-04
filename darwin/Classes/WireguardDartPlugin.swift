@@ -20,11 +20,16 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
     )
 
     private var vpnManager: NETunnelProviderManager?
+    private var statusChannel: FlutterEventChannel?
 
     var vpnStatus: NEVPNStatus {
         get {
             return vpnManager?.connection.status ?? NEVPNStatus.invalid
         }
+    }
+
+    init(registrar: FlutterPluginRegistrar) {
+        statusChannel = FlutterEventChannel(name: "wireguard_dart.status", binaryMessenger: registrar.messenger)
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -34,7 +39,8 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         let messenger = registrar.messenger
         #endif
         let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
-        let instance = WireguardDartPlugin()
+
+        let instance = WireguardDartPlugin(registrar: registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
@@ -61,6 +67,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             Task {
                 do {
                     vpnManager = try await setupProviderManager(bundleId: bundleId)
+                    statusChannel!.setStreamHandler(ConnectionStatusObserver(vpnManager: vpnManager!))
                     Self.logger.debug("Tunnel setup OK")
                     result("")
                 } catch {

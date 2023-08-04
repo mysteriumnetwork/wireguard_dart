@@ -226,6 +226,15 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               Text(_status.name),
+              StreamBuilder(
+                  stream: _wireguardDartPlugin.onStatusChanged(),
+                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatusChanged> snapshot) {
+                    // Check if the snapshot has data and is a map containing the 'status' key
+                    if (snapshot.hasData) {
+                      return Text(snapshot.data!.status.name);
+                    }
+                    return const CircularProgressIndicator();
+                  }),
             ],
           ),
         ),
