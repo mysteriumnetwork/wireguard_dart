@@ -1,21 +1,46 @@
+#if os(iOS)
 import Flutter
 import UIKit
+#elseif os(macOS)
+import FlutterMacOS
+import Cocoa
+#else
+#error("Unsupported platform")
+#endif
+
 import WireGuardKit
 import NetworkExtension
 import os
 
-public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
+public class WireguardDartPlugin: NSObject, FlutterPlugin {
 
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier!,
-        category: String(describing: SwiftWireguardDartPlugin.self)
+        category: String(describing: WireguardDartPlugin.self)
     )
 
-    var bundleId: String?
+    private var vpnManager: NETunnelProviderManager?
+    private var statusChannel: FlutterEventChannel?
+
+    var vpnStatus: NEVPNStatus {
+        get {
+            return vpnManager?.connection.status ?? NEVPNStatus.invalid
+        }
+    }
+
+    init(registrar: FlutterPluginRegistrar) {
+        statusChannel = FlutterEventChannel(name: "wireguard_dart.status", binaryMessenger: registrar.messenger)
+    }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: registrar.messenger())
-        let instance = SwiftWireguardDartPlugin()
+        #if os(iOS)
+        let messenger = registrar.messenger()
+        #else
+        let messenger = registrar.messenger
+        #endif
+        let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
+
+        let instance = WireguardDartPlugin(registrar: registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
@@ -30,22 +55,19 @@ public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
             result(privateKeyResponse)
         case "setupTunnel":
             Self.logger.debug("handle setupTunnel")
-            if let args = call.arguments as? Dictionary<String, Any>,
-               let argBundleId = args["bundleId"] as? String {
-                bundleId = argBundleId
-            } else {
+            guard let args = call.arguments as? Dictionary<String, Any>, args["bundleId"] != nil else {
                 result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
                 return
             }
-            guard let bundleId else {
-                Self.logger.error("Tunnel not initialized, missing 'bundleId'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'bundleId'", details: nil))
+            guard let bundleId = args["bundleId"] as? String, !bundleId.isEmpty else {
+                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
                 return
             }
             Self.logger.debug("Tunnel bundle ID: \(bundleId)")
             Task {
                 do {
-                    _ = try await setupProviderManager(bundleId: bundleId)
+                    vpnManager = try await setupProviderManager(bundleId: bundleId)
+                    statusChannel!.setStreamHandler(ConnectionStatusObserver(vpnManager: vpnManager!))
                     Self.logger.debug("Tunnel setup OK")
                     result("")
                 } catch {
@@ -67,25 +89,13 @@ public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
                 result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'cfg'", details: nil))
                 return
             }
-            Self.logger.debug("Connection configuration: \(cfg)")
-            guard let bundleId else {
-                Self.logger.error("Tunnel not initialized, missing 'bundleId'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'bundleId'", details: nil))
+            guard let mgr = vpnManager else {
+                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
+                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
                 return
             }
+            Self.logger.debug("Connection configuration: \(cfg)")
             Task {
-                var mgr: NETunnelProviderManager
-                do {
-                    mgr = try await setupProviderManager(bundleId: bundleId)
-                    Self.logger.debug("VPN tunnel provider OK")
-                } catch {
-                    Self.logger.error("Could not find VPN Tunnel provider: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not find VPN tunnel provider: \(error)",
-                            details: nil))
-                    return
-                }
                 do {
                     try mgr.connection.startVPNTunnel(options: [
                         "cfg": cfg as NSObject
@@ -100,28 +110,33 @@ public class SwiftWireguardDartPlugin: NSObject, FlutterPlugin {
                 }
             }
         case "disconnect":
-            Self.logger.debug("handle disconnect")
-            guard let bundleId else {
-                Self.logger.error("Required arg 'bundleId' not provided")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'bundleId'", details: nil))
+            guard let mgr = vpnManager else {
+                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
+                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
                 return
             }
             Task {
-                var mgr: NETunnelProviderManager
-                do {
-                    mgr = try await setupProviderManager(bundleId: bundleId)
-                    Self.logger.debug("VPN tunnel provider OK")
-                } catch {
-                    Self.logger.error("Could not find VPN tunnel provider: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not find VPN tunnel provider: \(error)",
-                            details: nil))
-                    return
-                }
                 mgr.connection.stopVPNTunnel()
                 Self.logger.debug("Stop tunnel OK")
                 result("")
+            }
+        case "status":
+            guard let mgr = vpnManager else {
+                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
+                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                return
+            }
+            Task {
+                let mappedStatus: String = {
+                    switch vpnStatus {
+                    case .connected: return "connected"
+                    case .disconnected:return  "disconnected"
+                    case .connecting: return "connecting"
+                    case .disconnecting: return "disconnecting"
+                    default: return "unknown"
+                    }
+                }()
+                result(["status": mappedStatus])
             }
         default:
             result(FlutterMethodNotImplemented)

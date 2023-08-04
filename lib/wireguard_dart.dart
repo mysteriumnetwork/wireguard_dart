@@ -1,7 +1,10 @@
+import 'package:wireguard_dart/key_pair.dart';
+
+import 'connection_status.dart';
 import 'wireguard_dart_platform_interface.dart';
 
 class WireguardDart {
-  Future<Map<String, String>> generateKeyPair() {
+  Future<KeyPair> generateKeyPair() {
     return WireguardDartPlatform.instance.generateKeyPair();
   }
 
@@ -19,5 +22,13 @@ class WireguardDart {
 
   Future<void> disconnect() {
     return WireguardDartPlatform.instance.disconnect();
+  }
+
+  Future<ConnectionStatus> status() {
+    return WireguardDartPlatform.instance.status();
+  }
+
+  Stream<ConnectionStatusChanged> onStatusChanged() {
+    return WireguardDartPlatform.instance.onStatusChanged();
   }
 }

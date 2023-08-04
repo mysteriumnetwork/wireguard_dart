@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 
 void main() {
@@ -36,6 +37,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
   final _wireguardDartPlugin = WireguardDart();
+  ConnectionStatus _status = ConnectionStatus.unknown;
 
   @override
   void initState() {
@@ -65,13 +67,16 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void generateKey() {
-    _wireguardDartPlugin.generateKeyPair().then((value) => {
-          developer.log(
-            'Generated key',
-            error: value.toString(),
-          )
-        });
+  void generateKey() async {
+    try {
+      var keyPair = await _wireguardDartPlugin.generateKeyPair();
+      debugPrint('Generated key pair: $keyPair');
+    } catch (e) {
+      developer.log(
+        'Generated key',
+        error: e,
+      );
+    }
   }
 
   void nativeInit() async {
@@ -86,7 +91,7 @@ class _MyAppState extends State<MyApp> {
     } catch (e) {
       developer.log(
         'Setup tunnel',
-        error: e.toString(),
+        error: e,
       );
     }
   }
@@ -113,6 +118,18 @@ class _MyAppState extends State<MyApp> {
         'Disconnect',
         error: e.toString(),
       );
+    }
+  }
+
+  void status() async {
+    try {
+      var status = await _wireguardDartPlugin.status();
+      debugPrint("Connection status: $status");
+      setState(() {
+        _status = status;
+      });
+    } catch (e) {
+      developer.log("Connection status", error: e.toString());
     }
   }
 
@@ -195,6 +212,29 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               const SizedBox(height: 20),
+              TextButton(
+                onPressed: status,
+                style: ButtonStyle(
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                child: const Text(
+                  'Query status',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(_status.name),
+              StreamBuilder(
+                  stream: _wireguardDartPlugin.onStatusChanged(),
+                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatusChanged> snapshot) {
+                    // Check if the snapshot has data and is a map containing the 'status' key
+                    if (snapshot.hasData) {
+                      return Text(snapshot.data!.status.name);
+                    }
+                    return const CircularProgressIndicator();
+                  }),
             ],
           ),
         ),
