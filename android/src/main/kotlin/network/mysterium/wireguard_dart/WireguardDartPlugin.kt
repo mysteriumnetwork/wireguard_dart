@@ -17,10 +17,8 @@ import android.content.Context
 import android.util.Log
 import com.beust.klaxon.Klaxon
 import com.wireguard.android.backend.*
-import com.wireguard.crypto.Key
 import com.wireguard.crypto.KeyPair
 import kotlinx.coroutines.*
-import java.util.*
 
 
 import kotlinx.coroutines.launch
@@ -47,7 +45,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var activity: Activity? = null
     private var config: com.wireguard.config.Config? = null
     private var tunnel: WireguardTunnel? = null
-
+    private lateinit var status: ConnectionStatus
 
     companion object {
         const val TAG = "MainActivity"
@@ -122,22 +120,95 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
-            "getStats" -> handleGetStats(call.arguments, result)
+            "statistics" -> statistics(result)
             else -> flutterNotImplemented(result)
         }
     }
 
-    private fun handleGetStats(arguments: Any?, result: Result) {
-        val tunnelName = arguments?.toString()
-        if (tunnelName.isNullOrEmpty()) {
-            flutterError(result, "Tunnel has not been initialized")
+    private fun generateKeyPair(result: Result) {
+        val keyPair = KeyPair()
+        result.success(
+            hashMapOf(
+                "privateKey" to keyPair.privateKey.toBase64(),
+                "publicKey" to keyPair.publicKey.toBase64()
+            )
+        )
+    }
+
+    private fun setupTunnel(bundleId: String, result: Result) {
+        scope.launch(Dispatchers.IO) {
+            if (Tunnel.isNameInvalid(bundleId)) {
+                flutterError(result, "Invalid Name")
+                return@launch
+            }
+            tunnelName = bundleId
+            checkPermission()
+            tunnel = WireguardTunnel(tunnelName)
+            status = when (backend?.getState(tunnel!!)) {
+                Tunnel.State.UP -> ConnectionStatus.connected
+                Tunnel.State.DOWN -> ConnectionStatus.disconnected
+                else -> ConnectionStatus.unknown
+            }
+            result.success(null)
+        }
+    }
+
+    private fun connect(cfg: String, result: Result) {
+        val tun = tunnel ?: run {
+            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
             return
         }
-
         scope.launch(Dispatchers.IO) {
-
             try {
-                val statistics = futureBackend.await().getStatistics(tunnel(tunnelName))
+                if (!havePermission) {
+                    checkPermission()
+                    throw Exception("Permissions are not given")
+                }
+                val inputStream = ByteArrayInputStream(cfg.toByteArray())
+                config = com.wireguard.config.Config.parse(inputStream)
+                futureBackend.await().setState(tun, Tunnel.State.UP, config);
+                flutterSuccess(result, "")
+            } catch (e: BackendException) {
+                Log.e(TAG, "Connect - BackendException - ERROR - ${e.reason}", e)
+                flutterError(result, e.reason.toString())
+            } catch (e: Throwable) {
+                Log.e(TAG, "Connect - Can't connect to tunnel: $e", e)
+                flutterError(result, e.message.toString())
+            }
+        }
+    }
+
+    private fun disconnect(result: Result) {
+        val tun = tunnel ?: run {
+            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            try {
+                if (futureBackend.await().runningTunnelNames.isEmpty()) {
+                    throw Exception("Tunnel is not running")
+                }
+                futureBackend.await().setState(tun, Tunnel.State.DOWN, config)
+                flutterSuccess(result, "")
+            } catch (e: BackendException) {
+                Log.e(TAG, "Disconnect - BackendException - ERROR - ${e.reason}", e)
+                flutterError(result, e.reason.toString())
+            } catch (e: Throwable) {
+                Log.e(TAG, "Disconnect - Can't disconnect from tunnel: ${e.message}")
+                flutterError(result, e.message.toString())
+            }
+        }
+    }
+
+
+    private fun statistics(result: Result) {
+        val tun = tunnel ?: run {
+            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            try {
+                val statistics = futureBackend.await().getStatistics(tun)
                 val stats = Stats(statistics.totalRx(), statistics.totalTx())
 
                 flutterSuccess(
@@ -157,80 +228,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         }
     }
 
-    private fun disconnect(result: Result) {
-
-        scope.launch(Dispatchers.IO) {
-            try {
-                if (futureBackend.await().runningTunnelNames.isEmpty()) {
-                    throw Exception("Tunnel is not running")
-                }
-
-                futureBackend.await().setState(
-                    tunnel(tunnelName) { state ->
-                        scope.launch(Dispatchers.Main) {
-                            Log.i(TAG, "onStateChange - $state")
-                            channel.invokeMethod(
-                                "onStateChange", state == Tunnel.State.UP
-                            )
-                        }
-                    }, Tunnel.State.DOWN, config
-                )
-                Log.i(TAG, "Disconnect - success!")
-                flutterSuccess(result, "")
-            } catch (e: BackendException) {
-                Log.e(TAG, "Disconnect - BackendException - ERROR - ${e.reason}", e)
-                flutterError(result, e.reason.toString())
-            } catch (e: Throwable) {
-                Log.e(TAG, "Disconnect - Can't disconnect from tunnel: ${e.message}")
-                flutterError(result, e.message.toString())
-            }
-        }
-    }
-
-    private fun connect(cfg: String, result: Result) {
-
-        scope.launch(Dispatchers.IO) {
-            try {
-                if (!havePermission) {
-                    checkPermission()
-                    throw Exception("Permissions are not given")
-                }
-                val inputStream = ByteArrayInputStream(cfg.toByteArray())
-                config = com.wireguard.config.Config.parse(inputStream)
-                futureBackend.await().setState(
-                    tunnel(tunnelName) { state ->
-                        scope.launch(Dispatchers.Main) {
-                            Log.i(TAG, "onStateChange - $state")
-                            channel.invokeMethod(
-                                "onStateChange", state == Tunnel.State.UP
-                            )
-                        }
-                    }, Tunnel.State.UP, config
-                )
-                Log.i(TAG, "Connect - success!")
-                flutterSuccess(result, "")
-            } catch (e: BackendException) {
-                Log.e(TAG, "Connect - BackendException - ERROR - ${e.reason}", e)
-                flutterError(result, e.reason.toString())
-            } catch (e: Throwable) {
-                Log.e(TAG, "Connect - Can't connect to tunnel: $e", e)
-                flutterError(result, e.message.toString())
-            }
-        }
-    }
-
-    private fun setupTunnel(bundleId: String, result: Result) {
-        scope.launch(Dispatchers.IO) {
-            if (Tunnel.isNameInvalid(bundleId)) {
-                flutterError(result, "Invalid Name")
-                return@launch
-            }
-            tunnelName = bundleId
-            checkPermission()
-            result.success(null)
-        }
-    }
-
     private fun checkPermission() {
         val intent = GoBackend.VpnService.prepare(this.activity)
         if (intent != null) {
@@ -241,25 +238,8 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         }
     }
 
-    private fun generateKeyPair(result: Result) {
-        val keyPair = KeyPair()
-        val privateKey = keyPair.privateKey.toBase64()
-        val publicKey = KeyPair(Key.fromBase64(privateKey)).publicKey.toBase64()
-        val map: HashMap<String, String> =
-            hashMapOf("privateKey" to privateKey, "publicKey" to publicKey)
-        result.success(map)
-        return
-    }
-
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
-    }
-
-    private fun tunnel(name: String, callback: StateChangeCallback? = null): WireguardTunnel {
-        if (tunnel == null) {
-            tunnel = WireguardTunnel(name, callback)
-        }
-        return tunnel as WireguardTunnel
     }
 
     private fun status(result: Result) {
