@@ -121,6 +121,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             "setupTunnel" -> setupTunnel(call.argument<String>("bundleId").toString(), result)
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
+            "status" -> status(result)
             "getStats" -> handleGetStats(call.arguments, result)
             else -> flutterNotImplemented(result)
         }
@@ -259,6 +260,19 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             tunnel = WireguardTunnel(name, callback)
         }
         return tunnel as WireguardTunnel
+    }
+
+    private fun status(result: Result) {
+        if (tunnel == null) {
+            flutterError(result, "Tunnel has not been initialized")
+            return
+        }
+        val status = when (backend?.getState(tunnel!!)) {
+            Tunnel.State.DOWN -> ConnectionStatus.disconnected
+            Tunnel.State.UP -> ConnectionStatus.connected
+            else -> ConnectionStatus.unknown
+        }
+        result.success(hashMapOf("status" to status.name))
     }
 }
 
