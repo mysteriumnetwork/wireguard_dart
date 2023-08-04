@@ -18,25 +18,21 @@ import android.util.Log
 import com.beust.klaxon.Klaxon
 import com.wireguard.android.backend.*
 import com.wireguard.crypto.KeyPair
+import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.*
 
 
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
-/** WireguardDartPlugin */
-
 const val PERMISSIONS_REQUEST_CODE = 10014
-const val METHOD_CHANNEL_NAME = "wireguard_dart"
 
 class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
-    PluginRegistry.ActivityResultListener {
-    /// The MethodChannel that will the communication between Flutter and native Android
-    ///
-    /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-    /// when the Flutter Engine is detached from the Activity
+        PluginRegistry.ActivityResultListener {
+
     private lateinit var channel: MethodChannel
-    private lateinit var tunnelName: String
+    private lateinit var statusChannel: EventChannel
+    private lateinit var statusBroadcaster: ConnectionStatusBroadcaster
     private val futureBackend = CompletableDeferred<Backend>()
     private val scope = CoroutineScope(Job() + Dispatchers.Main.immediate)
     private var backend: Backend? = null
@@ -45,7 +41,13 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var activity: Activity? = null
     private var config: com.wireguard.config.Config? = null
     private var tunnel: WireguardTunnel? = null
-    private lateinit var status: ConnectionStatus
+    private var status: ConnectionStatus = ConnectionStatus.disconnected
+        set(value) {
+            field = value
+            if (::statusBroadcaster.isInitialized) {
+                statusBroadcaster.send(value)
+            }
+        }
 
     companion object {
         const val TAG = "MainActivity"
@@ -53,7 +55,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         havePermission =
-            (requestCode == PERMISSIONS_REQUEST_CODE) && (resultCode == Activity.RESULT_OK)
+                (requestCode == PERMISSIONS_REQUEST_CODE) && (resultCode == Activity.RESULT_OK)
         return havePermission
     }
 
@@ -74,7 +76,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, METHOD_CHANNEL_NAME)
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart")
+        statusChannel = EventChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart.status")
+        statusBroadcaster = ConnectionStatusBroadcaster()
+        statusChannel.setStreamHandler(statusBroadcaster)
         context = flutterPluginBinding.applicationContext
 
         scope.launch(Dispatchers.IO) {
@@ -128,10 +133,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private fun generateKeyPair(result: Result) {
         val keyPair = KeyPair()
         result.success(
-            hashMapOf(
-                "privateKey" to keyPair.privateKey.toBase64(),
-                "publicKey" to keyPair.publicKey.toBase64()
-            )
+                hashMapOf(
+                        "privateKey" to keyPair.privateKey.toBase64(),
+                        "publicKey" to keyPair.publicKey.toBase64()
+                )
         )
     }
 
@@ -141,14 +146,11 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 flutterError(result, "Invalid Name")
                 return@launch
             }
-            tunnelName = bundleId
             checkPermission()
-            tunnel = WireguardTunnel(tunnelName)
-            status = when (backend?.getState(tunnel!!)) {
-                Tunnel.State.UP -> ConnectionStatus.connected
-                Tunnel.State.DOWN -> ConnectionStatus.disconnected
-                else -> ConnectionStatus.unknown
+            tunnel = WireguardTunnel(bundleId) { state ->
+                status = ConnectionStatus.fromTunnelState(state)
             }
+            status = ConnectionStatus.fromTunnelState(backend?.getState(tunnel!!))
             result.success(null)
         }
     }
@@ -158,6 +160,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             result.error("err_setup_tunnel", "Tunnel is not initialized", null)
             return
         }
+        status = ConnectionStatus.connecting
         scope.launch(Dispatchers.IO) {
             try {
                 if (!havePermission) {
@@ -168,11 +171,9 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 config = com.wireguard.config.Config.parse(inputStream)
                 futureBackend.await().setState(tun, Tunnel.State.UP, config);
                 flutterSuccess(result, "")
-            } catch (e: BackendException) {
-                Log.e(TAG, "Connect - BackendException - ERROR - ${e.reason}", e)
-                flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
                 Log.e(TAG, "Connect - Can't connect to tunnel: $e", e)
+                status = queryStatus()
                 flutterError(result, e.message.toString())
             }
         }
@@ -190,11 +191,9 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 }
                 futureBackend.await().setState(tun, Tunnel.State.DOWN, config)
                 flutterSuccess(result, "")
-            } catch (e: BackendException) {
-                Log.e(TAG, "Disconnect - BackendException - ERROR - ${e.reason}", e)
-                flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
                 Log.e(TAG, "Disconnect - Can't disconnect from tunnel: ${e.message}")
+                status = queryStatus()
                 flutterError(result, e.message.toString())
             }
         }
@@ -212,9 +211,9 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 val stats = Stats(statistics.totalRx(), statistics.totalTx())
 
                 flutterSuccess(
-                    result, Klaxon().toJsonString(
+                        result, Klaxon().toJsonString(
                         stats
-                    )
+                )
                 )
                 Log.i(TAG, "Statistics - ${stats.totalDownload} ${stats.totalUpload}")
 
@@ -243,23 +242,26 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     private fun status(result: Result) {
+        val status = queryStatus()
+        result.success(hashMapOf("status" to status.name))
+    }
+
+    private fun queryStatus(): ConnectionStatus {
         if (tunnel == null) {
-            flutterError(result, "Tunnel has not been initialized")
-            return
+            return ConnectionStatus.unknown
         }
-        val status = when (backend?.getState(tunnel!!)) {
+        return when (backend?.getState(tunnel!!)) {
             Tunnel.State.DOWN -> ConnectionStatus.disconnected
             Tunnel.State.UP -> ConnectionStatus.connected
             else -> ConnectionStatus.unknown
         }
-        result.success(hashMapOf("status" to status.name))
     }
 }
 
 typealias StateChangeCallback = (Tunnel.State) -> Unit
 
 class WireguardTunnel(
-    private val name: String, private val onStateChanged: StateChangeCallback? = null
+        private val name: String, private val onStateChanged: StateChangeCallback? = null
 ) : Tunnel {
 
     override fun getName() = name
@@ -271,8 +273,8 @@ class WireguardTunnel(
 }
 
 class Stats(
-    val totalDownload: Long,
-    val totalUpload: Long,
+        val totalDownload: Long,
+        val totalUpload: Long,
 )
 
 
