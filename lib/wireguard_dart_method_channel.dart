@@ -17,7 +17,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
     var result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
     if (!result.containsKey('publicKey') || !result.containsKey('privateKey')) {
       throw StateError('Could not generate keypair');
-    };
+    }
     return KeyPair(result['publicKey']!, result['privateKey']!);
   }
 
@@ -54,11 +54,11 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   @override
   Stream<ConnectionStatusChanged> onStatusChanged() {
     return statusChannel.receiveBroadcastStream().map((event) {
-        var statusStr = "";
-        if (event is Map) {
-          statusStr = event['status'];
-        }
-        var status = ConnectionStatus.fromString(statusStr);
+      var statusStr = "";
+      if (event is Map) {
+        statusStr = event['status'];
+      }
+      var status = ConnectionStatus.fromString(statusStr);
       return ConnectionStatusChanged(status);
     }).cast();
   }

@@ -5,7 +5,7 @@ import WireGuardKit
 
 public class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
 
-  private var _sink: FlutterEventSink?
+  private var _eventSink: FlutterEventSink?
   private var _vpnManager: NETunnelProviderManager
 
   private var pIsRunning: Bool = false
@@ -18,31 +18,16 @@ public class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
   }
 
   public func _statusChanged(_: Notification?) {
-      guard let sink = _sink else {
-                  return
-              }
-    let status = _vpnManager.connection.status
-      let mappedStatus: Dictionary<String, String> = {
-      switch status {
-      case .connected:
-        return ["status": "connected"]
-      case .disconnected:
-        return ["status": "connected"]
-      case .connecting:
-        return ["status": "connecting"]
-      case .disconnecting:
-        return ["status": "disconnecting"]
-      default:
-        return ["status": "unknown"]
-      }
-    }()
-      sink(mappedStatus)
+    guard let _eventSink = _eventSink else {
+      return
+    }
+      _eventSink(ConnectionStatus.fromNEVPNStatus(ns: _vpnManager.connection.status).string())
   }
 
   public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
     -> FlutterError?
   {
-    _sink = events
+    self._eventSink = events
 
     if !pIsRunning {
       NotificationCenter.default.addObserver(
@@ -66,7 +51,7 @@ public class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
 
     NotificationCenter.default.removeObserver(self)
 
-    _sink = nil
+    _eventSink = nil
 
     return nil
   }

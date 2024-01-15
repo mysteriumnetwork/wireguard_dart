@@ -127,16 +127,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 return
             }
             Task {
-                let mappedStatus: String = {
-                    switch vpnStatus {
-                    case .connected: return "connected"
-                    case .disconnected:return  "disconnected"
-                    case .connecting: return "connecting"
-                    case .disconnecting: return "disconnecting"
-                    default: return "unknown"
-                    }
-                }()
-                result(["status": mappedStatus])
+                result(["status": ConnectionStatus.fromNEVPNStatus(ns: vpnStatus).string()])
             }
         default:
             result(FlutterMethodNotImplemented)
