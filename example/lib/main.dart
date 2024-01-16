@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 
+const tunBundleId = "network.mysterium.wireguardDartExample.tun";
+const winSvcName = "Wireguard_Dart_Example";
+
 void main() {
   runApp(const MyApp());
 }
@@ -86,7 +89,7 @@ class _MyAppState extends State<MyApp> {
 
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium", win32ServiceName: "MysteriumVPN_Wireguard");
+      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, win32ServiceName: winSvcName);
       debugPrint("Setup tunnel success");
     } catch (e) {
       developer.log(
