@@ -138,13 +138,13 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
 
     func setupProviderManager(bundleId: String) async throws -> NETunnelProviderManager {
         let mgrs = await fetchManagers()
-        let existingMgr = mgrs.first(where: { $0.localizedDescription == "Mysterium VPN" })
+        let existingMgr = mgrs.first(where: { ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId })
         let mgr = existingMgr ?? NETunnelProviderManager()
 
         mgr.localizedDescription = "Mysterium VPN"
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = bundleId
-        proto.serverAddress = "127.0.0.1"  // Fake address
+        proto.serverAddress = "" // must be non-null
         mgr.protocolConfiguration = proto
         mgr.isEnabled = true
 
