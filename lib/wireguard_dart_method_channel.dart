@@ -27,9 +27,10 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   }
 
   @override
-  Future<void> setupTunnel({required String bundleId, String? win32ServiceName}) async {
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) async {
     var args = {
       'bundleId': bundleId,
+      'tunnelName': tunnelName,
       if (win32ServiceName != null) 'win32ServiceName': win32ServiceName,
     };
     await methodChannel.invokeMethod<void>('setupTunnel', args);

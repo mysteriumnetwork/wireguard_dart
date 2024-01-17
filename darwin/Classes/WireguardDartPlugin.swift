@@ -62,13 +62,14 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 return
             }
             guard let bundleId = args["bundleId"] as? String, !bundleId.isEmpty else {
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
+            guard let tunnelName = args["tunnelName"] as? String, !tunnelName.isEmpty else {
+                result(nativeFlutterError(message: "required argument: 'tunnelName'"))
                 return
             }
-            Self.logger.debug("Tunnel bundle ID: \(bundleId)")
+            Self.logger.debug("Tunnel bundle ID: \(bundleId), name: \(tunnelName)")
             Task {
                 do {
-                    vpnManager = try await setupProviderManager(bundleId: bundleId)
+                    vpnManager = try await setupProviderManager(bundleId: bundleId, tunnelName: tunnelName)
                     statusChannel!.setStreamHandler(ConnectionStatusObserver(vpnManager: vpnManager!))
                     Self.logger.debug("Tunnel setup OK")
                     result("")
