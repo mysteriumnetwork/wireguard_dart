@@ -1,5 +1,13 @@
-import Cocoa
+#if os(iOS)
+import Flutter
+import UIKit
+#elseif os(macOS)
 import FlutterMacOS
+import Cocoa
+#else
+#error("Unsupported platform")
+#endif
+
 import NetworkExtension
 import WireGuardKit
 

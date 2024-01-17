@@ -58,10 +58,13 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         case "setupTunnel":
             Self.logger.debug("handle setupTunnel")
             guard let args = call.arguments as? Dictionary<String, Any>, args["bundleId"] != nil else {
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
+                result(nativeFlutterError(message: "required argument: 'bundleId'"))
                 return
             }
             guard let bundleId = args["bundleId"] as? String, !bundleId.isEmpty else {
+                result(nativeFlutterError(message: "required argument: 'bundleId'"))
+                return
+            }
             guard let tunnelName = args["tunnelName"] as? String, !tunnelName.isEmpty else {
                 result(nativeFlutterError(message: "required argument: 'tunnelName'"))
                 return
@@ -75,9 +78,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                     result("")
                 } catch {
                     Self.logger.error("Tunnel setup ERROR: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not setup VPN tunnel: \(error)", details: nil))
+                    result(nativeFlutterError(message: "could not setup VPN tunnel: \(error)"))
                     return
                 }
             }
@@ -89,12 +90,12 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 cfg = argCfg
             } else {
                 Self.logger.error("Required argument 'cfg' not provided")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'cfg'", details: nil))
+                result(nativeFlutterError(message: "required argument: 'cfg'"))
                 return
             }
             guard let mgr = vpnManager else {
                 Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Self.logger.debug("Connection configuration: \(cfg)")
@@ -107,15 +108,13 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                     result("")
                 } catch {
                     Self.logger.error("Start VPN tunnel ERROR: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not start VPN tunnel: \(error)", details: nil))
+                    result(nativeFlutterError(message: "could not start VPN tunnel: \(error)"))
                 }
             }
         case "disconnect":
             guard let mgr = vpnManager else {
                 Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Task {
@@ -126,7 +125,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         case "status":
             guard let mgr = vpnManager else {
                 Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Task {
@@ -137,42 +136,23 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    func setupProviderManager(bundleId: String) async throws -> NETunnelProviderManager {
-        let mgrs = await fetchManagers()
-        let existingMgr = mgrs.first(where: { ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId })
+    func setupProviderManager(bundleId: String, tunnelName: String) async throws -> NETunnelProviderManager {
+        let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
+        let existingMgr = mgrs.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId
+        })
         let mgr = existingMgr ?? NETunnelProviderManager()
 
-        mgr.localizedDescription = "Mysterium VPN"
+        mgr.localizedDescription = tunnelName
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = bundleId
         proto.serverAddress = "" // must be non-null
         mgr.protocolConfiguration = proto
         mgr.isEnabled = true
 
-        try await saveManager(mgr: mgr)
+        try await mgr.saveToPreferences()
+
         return mgr
     }
 
-    func fetchManagers() async -> [NETunnelProviderManager] {
-        return await withCheckedContinuation { continuation in
-            NETunnelProviderManager.loadAllFromPreferences { managers, error in
-                continuation.resume(returning: (managers ?? []))
-            }
-        }
-    }
-
-    func saveManager(mgr: NETunnelProviderManager) async throws -> Void {
-        return try await withCheckedThrowingContinuation { continuation in
-            mgr.saveToPreferences { error in
-                if let error: Error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
-    }
 }
-
-
-
