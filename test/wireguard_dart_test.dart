@@ -28,8 +28,8 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   Future<ConnectionStatus> status() => Future.value(ConnectionStatus.disconnected);
 
   @override
-  Stream<ConnectionStatusChanged> onStatusChanged() {
-    return Stream.value(ConnectionStatusChanged(ConnectionStatus.disconnected));
+  Stream<ConnectionStatus> statusStream() {
+    return Stream.value(ConnectionStatus.disconnected);
   }
 }
 

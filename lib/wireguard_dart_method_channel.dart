@@ -48,19 +48,12 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<ConnectionStatus> status() async {
-    var result = await methodChannel.invokeMapMethod<String, String>('status') ?? <String, String>{};
-    return ConnectionStatus.fromString(result['status'] ?? '');
+    var result = await methodChannel.invokeMethod<String>('status');
+    return ConnectionStatus.fromString(result ?? "");
   }
 
   @override
-  Stream<ConnectionStatusChanged> onStatusChanged() {
-    return statusChannel.receiveBroadcastStream().map((event) {
-      var statusStr = "";
-      if (event is Map) {
-        statusStr = event['status'];
-      }
-      var status = ConnectionStatus.fromString(statusStr);
-      return ConnectionStatusChanged(status);
-    }).cast();
+  Stream<ConnectionStatus> statusStream() {
+    return statusChannel.receiveBroadcastStream().distinct().map((val) => ConnectionStatus.fromString(val));
   }
 }

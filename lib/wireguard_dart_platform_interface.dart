@@ -49,7 +49,7 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     throw UnimplementedError('status() has not been implemented');
   }
 
-  Stream<ConnectionStatusChanged> onStatusChanged() {
-    throw UnimplementedError('onStatusChanged() has not been implemented');
+  Stream<ConnectionStatus> statusStream() {
+    throw UnimplementedError('statusStream() has not been implemented');
   }
 }

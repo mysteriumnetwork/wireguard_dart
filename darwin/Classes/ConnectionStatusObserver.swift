@@ -63,4 +63,7 @@ public class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
 
     return nil
   }
+        
+        Logger.main.debug("VPN status changed: \(newStatus.string())")
+        eventSink(newStatus.string())
 }

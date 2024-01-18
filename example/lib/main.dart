@@ -41,10 +41,12 @@ class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
   final _wireguardDartPlugin = WireguardDart();
   ConnectionStatus _status = ConnectionStatus.unknown;
+  late Stream<ConnectionStatus> _statusStream;
 
   @override
   void initState() {
     super.initState();
+    _statusStream = _wireguardDartPlugin.statusStream();
     initPlatformState();
   }
 
@@ -229,12 +231,13 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               Text(_status.name),
-              StreamBuilder(
-                  stream: _wireguardDartPlugin.onStatusChanged(),
-                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatusChanged> snapshot) {
+              StreamBuilder<ConnectionStatus>(
+                  initialData: ConnectionStatus.unknown,
+                  stream: _statusStream,
+                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatus> snapshot) {
                     // Check if the snapshot has data and is a map containing the 'status' key
                     if (snapshot.hasData) {
-                      return Text(snapshot.data!.status.name);
+                      return Text(snapshot.data!.name);
                     }
                     return const CircularProgressIndicator();
                   }),
