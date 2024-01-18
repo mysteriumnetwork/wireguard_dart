@@ -5,12 +5,10 @@ import 'package:wireguard_dart/key_pair.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
-/// An implementation of [WireguardDartPlatform] that uses method channels.
 class MethodChannelWireguardDart extends WireguardDartPlatform {
-  /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('wireguard_dart');
-  final statusChannel = const EventChannel('wireguard_dart.status');
+  final statusChannel = const EventChannel('wireguard_dart/status');
 
   @override
   Future<KeyPair> generateKeyPair() async {

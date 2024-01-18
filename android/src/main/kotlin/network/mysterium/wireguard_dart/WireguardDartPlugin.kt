@@ -77,7 +77,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart")
-        statusChannel = EventChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart.status")
+        statusChannel = EventChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart/status")
         statusBroadcaster = ConnectionStatusBroadcaster()
         statusChannel.setStreamHandler(statusBroadcaster)
         context = flutterPluginBinding.applicationContext

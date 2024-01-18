@@ -10,60 +10,46 @@ import Cocoa
 
 import NetworkExtension
 import WireGuardKit
+import os
 
-public class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
-
-  private var _eventSink: FlutterEventSink?
-  private var _vpnManager: NETunnelProviderManager
-
-  private var pIsRunning: Bool = false
-  var isRunning: Bool {
-    pIsRunning
-  }
-
-  init(vpnManager: NETunnelProviderManager) {
-    _vpnManager = vpnManager
-  }
-
-  public func _statusChanged(_: Notification?) {
-    guard let _eventSink = _eventSink else {
-      return
-    }
-      _eventSink(ConnectionStatus.fromNEVPNStatus(ns: _vpnManager.connection.status).string())
-  }
-
-  public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
-    -> FlutterError?
-  {
-    self._eventSink = events
-
-    if !pIsRunning {
-      NotificationCenter.default.addObserver(
-        forName: NSNotification.Name.NEVPNStatusDidChange,
-        object: nil,
-        queue: OperationQueue.main,
-        using: _statusChanged
-      )
-    }
-
-    pIsRunning = true
-
-    // Send the initial data.
-
-    // No errors.
-    return nil
-  }
-
-  public func onCancel(withArguments arguments: Any?) -> FlutterError? {
-    pIsRunning = false
-
-    NotificationCenter.default.removeObserver(self)
-
-    _eventSink = nil
-
-    return nil
-  }
+class ConnectionStatusObserver: NSObject, FlutterStreamHandler {
+    
+    private var eventSink: FlutterEventSink?
+    private var isRunning: Bool = false
+    
+    public func _statusChanged(n: Notification?) {
+        guard let conn = n?.object as? NEVPNConnection else {
+            return
+        }
+        guard let eventSink = eventSink else {
+            return
+        }
+        let newStatus = ConnectionStatus.fromNEVPNStatus(ns: conn.status)
         
         Logger.main.debug("VPN status changed: \(newStatus.string())")
         eventSink(newStatus.string())
+    }
+    
+    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        self.eventSink = events
+        
+        if !isRunning {
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name.NEVPNStatusDidChange,
+                object: nil,
+                queue: OperationQueue.main,
+                using: _statusChanged
+            )
+        }
+        
+        isRunning = true
+        return nil
+    }
+    
+    public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        isRunning = false
+        NotificationCenter.default.removeObserver(self)
+        eventSink = nil
+        return nil
+    }
 }

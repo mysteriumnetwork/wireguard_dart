@@ -15,7 +15,7 @@ class PacketTunnelProvider: WireGuardTunnelProvider {
         subsystem: Bundle.main.bundleIdentifier!,
         category: String(describing: PacketTunnelProvider.self)
     )
-
+    
     private lazy var adapter: WireGuardAdapter = {
         return WireGuardAdapter(with: self) { logLevel, message in
             let level: OSLogType
@@ -28,7 +28,7 @@ class PacketTunnelProvider: WireGuardTunnelProvider {
             Self.logger.log(level: level, "\(message)")
         }
     }()
-
+    
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         super.startTunnel(options: options, completionHandler: completionHandler)
     }
