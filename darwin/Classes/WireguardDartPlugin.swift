@@ -15,17 +15,11 @@ import os
 public class WireguardDartPlugin: NSObject, FlutterPlugin {
     
     private var vpnManager: NETunnelProviderManager?
-    private var statusChannel: FlutterEventChannel
     
     var vpnStatus: NEVPNStatus {
         get {
             return vpnManager?.connection.status ?? NEVPNStatus.invalid
         }
-    }
-    
-    init(registrar: FlutterPluginRegistrar) {
-        statusChannel = FlutterEventChannel(name: "wireguard_dart/status", binaryMessenger: registrar.messenger)
-        statusChannel.setStreamHandler(ConnectionStatusObserver())
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -36,8 +30,11 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
 #endif
         let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
         
-        let instance = WireguardDartPlugin(registrar: registrar)
+        let instance = WireguardDartPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+        
+        let statusChannel = FlutterEventChannel(name: "wireguard_dart/status", binaryMessenger: messenger)
+        statusChannel.setStreamHandler(ConnectionStatusObserver())
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
