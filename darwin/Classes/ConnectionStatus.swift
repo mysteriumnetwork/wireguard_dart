@@ -8,9 +8,9 @@ enum ConnectionStatus: String {
     case connecting
     case disconnecting
     case unknown
-    
-    static func fromNEVPNStatus(ns: NEVPNStatus) -> ConnectionStatus {
-        switch ns {
+
+    static func fromNEVPNStatus(status: NEVPNStatus) -> ConnectionStatus {
+        switch status {
         case .connected: return ConnectionStatus.connected
         case .disconnected: return ConnectionStatus.disconnected
         case .connecting: return ConnectionStatus.connecting
@@ -18,8 +18,8 @@ enum ConnectionStatus: String {
         default: return ConnectionStatus.unknown
         }
     }
-    
+
     func string() -> String {
-        return self.rawValue
+        rawValue
     }
 }

@@ -2,41 +2,38 @@
 import Flutter
 import UIKit
 #elseif os(macOS)
-import FlutterMacOS
 import Cocoa
+import FlutterMacOS
 #else
 #error("Unsupported platform")
 #endif
 
-import WireGuardKit
 import NetworkExtension
 import os
+import WireGuardKit
 
 public class WireguardDartPlugin: NSObject, FlutterPlugin {
-    
     private var vpnManager: NETunnelProviderManager?
-    
+
     var vpnStatus: NEVPNStatus {
-        get {
-            return vpnManager?.connection.status ?? NEVPNStatus.invalid
-        }
+        vpnManager?.connection.status ?? NEVPNStatus.invalid
     }
-    
+
     public static func register(with registrar: FlutterPluginRegistrar) {
-#if os(iOS)
+        #if os(iOS)
         let messenger = registrar.messenger()
-#else
+        #else
         let messenger = registrar.messenger
-#endif
+        #endif
         let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
-        
+
         let instance = WireguardDartPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
-        
+
         let statusChannel = FlutterEventChannel(name: "wireguard_dart/status", binaryMessenger: messenger)
         statusChannel.setStreamHandler(ConnectionStatusObserver())
     }
-    
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "nativeInit":
@@ -45,12 +42,12 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             let privateKey = PrivateKey()
             let privateKeyResponse: [String: Any] = [
                 "privateKey": privateKey.base64Key,
-                "publicKey": privateKey.publicKey.base64Key,
+                "publicKey": privateKey.publicKey.base64Key
             ]
             result(privateKeyResponse)
         case "setupTunnel":
             Logger.main.debug("handle setupTunnel")
-            guard let args = call.arguments as? Dictionary<String, Any>, args["bundleId"] != nil else {
+            guard let args = call.arguments as? [String: Any], args["bundleId"] != nil else {
                 result(nativeFlutterError(message: "required argument: 'bundleId'"))
                 return
             }
@@ -77,7 +74,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         case "connect":
             Logger.main.debug("handle connect")
             let cfg: String
-            if let args = call.arguments as? Dictionary<String, Any>,
+            if let args = call.arguments as? [String: Any],
                let argCfg = args["cfg"] as? String {
                 cfg = argCfg
             } else {
@@ -115,36 +112,35 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 result("")
             }
         case "status":
-            guard let _ = vpnManager else {
+            guard vpnManager != nil else {
                 Logger.main.error("Tunnel not initialized, missing 'vpnManager'")
                 result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Task {
-                result(ConnectionStatus.fromNEVPNStatus(ns: vpnStatus).string())
+                result(ConnectionStatus.fromNEVPNStatus(status: vpnStatus).string())
             }
         default:
             result(FlutterMethodNotImplemented)
         }
     }
-    
+
     func setupProviderManager(bundleId: String, tunnelName: String) async throws -> NETunnelProviderManager {
         let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
         let existingMgr = mgrs.first(where: {
             ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId
         })
         let mgr = existingMgr ?? NETunnelProviderManager()
-        
+
         mgr.localizedDescription = tunnelName
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = bundleId
         proto.serverAddress = "" // must be non-null
         mgr.protocolConfiguration = proto
         mgr.isEnabled = true
-        
+
         try await mgr.saveToPreferences()
-        
+
         return mgr
     }
-    
 }

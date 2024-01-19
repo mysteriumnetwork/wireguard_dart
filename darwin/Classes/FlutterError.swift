@@ -7,5 +7,5 @@ import FlutterMacOS
 #endif
 
 func nativeFlutterError(message: String) -> FlutterError {
-    return FlutterError(code: "NATIVE_ERR", message: message, details: nil)
+    FlutterError(code: "NATIVE_ERR", message: message, details: nil)
 }
