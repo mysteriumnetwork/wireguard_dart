@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.5.0) (2024-01-18)
+
+- darwin: Fix connection status streaming. Two available methods are `.status()` and `.statusStream()`
+- `.status()` now returns an unwrapped status instead of a map
+- Add a required `tunnelName` option in addition to `bundleId`
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.5...0.5.0)
+
 ## [0.4.5](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.4.5) (2023-08-04)
 
 [Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.4.4...0.4.5)

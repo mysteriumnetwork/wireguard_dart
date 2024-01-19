@@ -2,34 +2,21 @@
 import Flutter
 import UIKit
 #elseif os(macOS)
-import FlutterMacOS
 import Cocoa
+import FlutterMacOS
 #else
 #error("Unsupported platform")
 #endif
 
-import WireGuardKit
 import NetworkExtension
 import os
+import WireGuardKit
 
 public class WireguardDartPlugin: NSObject, FlutterPlugin {
-
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier!,
-        category: String(describing: WireguardDartPlugin.self)
-    )
-
     private var vpnManager: NETunnelProviderManager?
-    private var statusChannel: FlutterEventChannel?
 
     var vpnStatus: NEVPNStatus {
-        get {
-            return vpnManager?.connection.status ?? NEVPNStatus.invalid
-        }
-    }
-
-    init(registrar: FlutterPluginRegistrar) {
-        statusChannel = FlutterEventChannel(name: "wireguard_dart.status", binaryMessenger: registrar.messenger)
+        vpnManager?.connection.status ?? NEVPNStatus.invalid
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -40,145 +27,120 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         #endif
         let channel = FlutterMethodChannel(name: "wireguard_dart", binaryMessenger: messenger)
 
-        let instance = WireguardDartPlugin(registrar: registrar)
+        let instance = WireguardDartPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+
+        let statusChannel = FlutterEventChannel(name: "wireguard_dart/status", binaryMessenger: messenger)
+        statusChannel.setStreamHandler(ConnectionStatusObserver())
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "nativeInit":
+            result("")
         case "generateKeyPair":
             let privateKey = PrivateKey()
             let privateKeyResponse: [String: Any] = [
                 "privateKey": privateKey.base64Key,
-                "publicKey": privateKey.publicKey.base64Key,
+                "publicKey": privateKey.publicKey.base64Key
             ]
             result(privateKeyResponse)
         case "setupTunnel":
-            Self.logger.debug("handle setupTunnel")
-            guard let args = call.arguments as? Dictionary<String, Any>, args["bundleId"] != nil else {
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
+            Logger.main.debug("handle setupTunnel")
+            guard let args = call.arguments as? [String: Any], args["bundleId"] != nil else {
+                result(nativeFlutterError(message: "required argument: 'bundleId'"))
                 return
             }
             guard let bundleId = args["bundleId"] as? String, !bundleId.isEmpty else {
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'bundleId'", details: nil))
+                result(nativeFlutterError(message: "required argument: 'bundleId'"))
                 return
             }
-            Self.logger.debug("Tunnel bundle ID: \(bundleId)")
+            guard let tunnelName = args["tunnelName"] as? String, !tunnelName.isEmpty else {
+                result(nativeFlutterError(message: "required argument: 'tunnelName'"))
+                return
+            }
+            Logger.main.debug("Tunnel bundle ID: \(bundleId), name: \(tunnelName)")
             Task {
                 do {
-                    vpnManager = try await setupProviderManager(bundleId: bundleId)
-                    statusChannel!.setStreamHandler(ConnectionStatusObserver(vpnManager: vpnManager!))
-                    Self.logger.debug("Tunnel setup OK")
+                    vpnManager = try await setupProviderManager(bundleId: bundleId, tunnelName: tunnelName)
+                    Logger.main.debug("Tunnel setup OK")
                     result("")
                 } catch {
-                    Self.logger.error("Tunnel setup ERROR: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not setup VPN tunnel: \(error)", details: nil))
+                    Logger.main.error("Tunnel setup ERROR: \(error)")
+                    result(nativeFlutterError(message: "could not setup VPN tunnel: \(error)"))
                     return
                 }
             }
         case "connect":
-            Self.logger.debug("handle connect")
+            Logger.main.debug("handle connect")
             let cfg: String
-            if let args = call.arguments as? Dictionary<String, Any>,
+            if let args = call.arguments as? [String: Any],
                let argCfg = args["cfg"] as? String {
                 cfg = argCfg
             } else {
-                Self.logger.error("Required argument 'cfg' not provided")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "required argument: 'cfg'", details: nil))
+                Logger.main.error("Required argument 'cfg' not provided")
+                result(nativeFlutterError(message: "required argument: 'cfg'"))
                 return
             }
             guard let mgr = vpnManager else {
-                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                Logger.main.error("Tunnel not initialized, missing 'vpnManager'")
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
-            Self.logger.debug("Connection configuration: \(cfg)")
+            Logger.main.debug("Connection configuration: \(cfg)")
             Task {
                 do {
                     try mgr.connection.startVPNTunnel(options: [
                         "cfg": cfg as NSObject
                     ])
-                    Self.logger.debug("Start VPN tunnel OK")
+                    Logger.main.debug("Start VPN tunnel OK")
                     result("")
                 } catch {
-                    Self.logger.error("Start VPN tunnel ERROR: \(error)")
-                    result(
-                        FlutterError.init(
-                            code: "NATIVE_ERR", message: "could not start VPN tunnel: \(error)", details: nil))
+                    Logger.main.error("Start VPN tunnel ERROR: \(error)")
+                    result(nativeFlutterError(message: "could not start VPN tunnel: \(error)"))
                 }
             }
         case "disconnect":
             guard let mgr = vpnManager else {
-                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+                Logger.main.error("Tunnel not initialized, missing 'vpnManager'")
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Task {
                 mgr.connection.stopVPNTunnel()
-                Self.logger.debug("Stop tunnel OK")
+                Logger.main.debug("Stop tunnel OK")
                 result("")
             }
         case "status":
-            guard let mgr = vpnManager else {
-                Self.logger.error("Tunnel not initialized, missing 'vpnManager'")
-                result(FlutterError.init(code: "NATIVE_ERR", message: "tunnel not initialized, missing 'vpnManager'", details: nil))
+            guard vpnManager != nil else {
+                Logger.main.error("Tunnel not initialized, missing 'vpnManager'")
+                result(nativeFlutterError(message: "tunnel not initialized, missing 'vpnManager'"))
                 return
             }
             Task {
-                let mappedStatus: String = {
-                    switch vpnStatus {
-                    case .connected: return "connected"
-                    case .disconnected:return  "disconnected"
-                    case .connecting: return "connecting"
-                    case .disconnecting: return "disconnecting"
-                    default: return "unknown"
-                    }
-                }()
-                result(["status": mappedStatus])
+                result(ConnectionStatus.fromNEVPNStatus(status: vpnStatus).string())
             }
         default:
             result(FlutterMethodNotImplemented)
         }
     }
 
-    func setupProviderManager(bundleId: String) async throws -> NETunnelProviderManager {
-        let mgrs = await fetchManagers()
-        let existingMgr = mgrs.first(where: { $0.localizedDescription == "Mysterium VPN" })
+    func setupProviderManager(bundleId: String, tunnelName: String) async throws -> NETunnelProviderManager {
+        let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
+        let existingMgr = mgrs.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId
+        })
         let mgr = existingMgr ?? NETunnelProviderManager()
 
-        mgr.localizedDescription = "Mysterium VPN"
+        mgr.localizedDescription = tunnelName
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = bundleId
-        proto.serverAddress = "127.0.0.1"  // Fake address
+        proto.serverAddress = "" // must be non-null
         mgr.protocolConfiguration = proto
         mgr.isEnabled = true
 
-        try await saveManager(mgr: mgr)
+        try await mgr.saveToPreferences()
+
         return mgr
     }
-
-    func fetchManagers() async -> [NETunnelProviderManager] {
-        return await withCheckedContinuation { continuation in
-            NETunnelProviderManager.loadAllFromPreferences { managers, error in
-                continuation.resume(returning: (managers ?? []))
-            }
-        }
-    }
-
-    func saveManager(mgr: NETunnelProviderManager) async throws -> Void {
-        return try await withCheckedThrowingContinuation { continuation in
-            mgr.saveToPreferences { error in
-                if let error: Error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
-    }
 }
-
-
-

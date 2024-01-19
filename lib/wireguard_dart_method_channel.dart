@@ -5,19 +5,17 @@ import 'package:wireguard_dart/key_pair.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
-/// An implementation of [WireguardDartPlatform] that uses method channels.
 class MethodChannelWireguardDart extends WireguardDartPlatform {
-  /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('wireguard_dart');
-  final statusChannel = const EventChannel('wireguard_dart.status');
+  final statusChannel = const EventChannel('wireguard_dart/status');
 
   @override
   Future<KeyPair> generateKeyPair() async {
     var result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
     if (!result.containsKey('publicKey') || !result.containsKey('privateKey')) {
       throw StateError('Could not generate keypair');
-    };
+    }
     return KeyPair(result['publicKey']!, result['privateKey']!);
   }
 
@@ -27,9 +25,10 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   }
 
   @override
-  Future<void> setupTunnel({required String bundleId, String? win32ServiceName}) async {
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) async {
     var args = {
       'bundleId': bundleId,
+      'tunnelName': tunnelName,
       if (win32ServiceName != null) 'win32ServiceName': win32ServiceName,
     };
     await methodChannel.invokeMethod<void>('setupTunnel', args);
@@ -47,19 +46,12 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<ConnectionStatus> status() async {
-    var result = await methodChannel.invokeMapMethod<String, String>('status') ?? <String, String>{};
-    return ConnectionStatus.fromString(result['status'] ?? '');
+    var result = await methodChannel.invokeMethod<String>('status');
+    return ConnectionStatus.fromString(result ?? "");
   }
 
   @override
-  Stream<ConnectionStatusChanged> onStatusChanged() {
-    return statusChannel.receiveBroadcastStream().map((event) {
-        var statusStr = "";
-        if (event is Map) {
-          statusStr = event['status'];
-        }
-        var status = ConnectionStatus.fromString(statusStr);
-      return ConnectionStatusChanged(status);
-    }).cast();
+  Stream<ConnectionStatus> statusStream() {
+    return statusChannel.receiveBroadcastStream().distinct().map((val) => ConnectionStatus.fromString(val));
   }
 }

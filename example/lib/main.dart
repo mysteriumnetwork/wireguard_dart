@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 
+const tunBundleId = "network.mysterium.wireguardDartExample.tun";
+const winSvcName = "Wireguard_Dart_Example";
+
 void main() {
   runApp(const MyApp());
 }
@@ -38,10 +41,12 @@ class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
   final _wireguardDartPlugin = WireguardDart();
   ConnectionStatus _status = ConnectionStatus.unknown;
+  late Stream<ConnectionStatus> _statusStream;
 
   @override
   void initState() {
     super.initState();
+    _statusStream = _wireguardDartPlugin.statusStream();
     initPlatformState();
   }
 
@@ -86,7 +91,7 @@ class _MyAppState extends State<MyApp> {
 
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(bundleId: "mysterium", win32ServiceName: "MysteriumVPN_Wireguard");
+      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "Wiregard Dart (example)", win32ServiceName: winSvcName);
       debugPrint("Setup tunnel success");
     } catch (e) {
       developer.log(
@@ -226,12 +231,13 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               Text(_status.name),
-              StreamBuilder(
-                  stream: _wireguardDartPlugin.onStatusChanged(),
-                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatusChanged> snapshot) {
+              StreamBuilder<ConnectionStatus>(
+                  initialData: ConnectionStatus.unknown,
+                  stream: _statusStream,
+                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatus> snapshot) {
                     // Check if the snapshot has data and is a map containing the 'status' key
                     if (snapshot.hasData) {
-                      return Text(snapshot.data!.status.name);
+                      return Text(snapshot.data!.name);
                     }
                     return const CircularProgressIndicator();
                   }),
