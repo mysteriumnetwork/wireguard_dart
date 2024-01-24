@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include "config_writer.h"
+#include "connection_status.h"
 #include "key_generator.h"
 #include "service_control.h"
 #include "tunnel.h"
@@ -147,6 +148,22 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     }
 
     result->Success();
+    return;
+  }
+
+  if (call.method_name() == "status") {
+    auto tunnel_service = this->tunnel_service_.get();
+    if (tunnel_service == nullptr) {
+      result->Error("Invalid state: call 'setupTunnel' first");
+      return;
+    }
+
+    try {
+      auto status = tunnel_service->Status();
+      result->Success(ConnectionStatusToString(status));
+    } catch (std::exception &e) {
+      result->Error(std::string(e.what()));
+    }
     return;
   }
 

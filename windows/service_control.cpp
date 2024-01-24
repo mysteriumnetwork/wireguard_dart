@@ -212,4 +212,8 @@ void ServiceControl::Disable() {
   }
 }
 
+ConnectionStatus ServiceControl::Status() {
+  return ConnectionStatus::disconnecting;
+}
+
 }  // namespace wireguard_dart

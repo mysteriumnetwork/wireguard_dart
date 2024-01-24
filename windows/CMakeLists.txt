@@ -28,6 +28,8 @@ list(APPEND PLUGIN_SOURCES
   "config_writer.h"
   "service_control.cpp"
   "service_control.h"
+  "connection_status.h"
+  "connection_status.cpp"
   "utils.cpp"
   "utils.h"
 )
