@@ -213,7 +213,60 @@ void ServiceControl::Disable() {
 }
 
 ConnectionStatus ServiceControl::Status() {
-  return ConnectionStatus::disconnecting;
+  SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+  if (service_manager == NULL) {
+    throw ServiceControlException("Failed to open service manager", GetLastError());
+  }
+
+  SC_HANDLE service = OpenService(service_manager, &service_name_[0], SERVICE_QUERY_STATUS);
+  if (service == NULL) {
+    CloseServiceHandle(service_manager);
+    return ConnectionStatus::disconnected;
+  }
+
+  SERVICE_STATUS_PROCESS service_status;
+  DWORD service_status_bytes_needed;
+  if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&service_status, sizeof(SERVICE_STATUS_PROCESS),
+                            &service_status_bytes_needed)) {
+    CloseServiceHandle(service);
+    CloseServiceHandle(service_manager);
+    throw ServiceControlException("Failed to query service status", GetLastError());
+  }
+
+  // //
+  // // Service State -- for CurrentState
+  // //
+  // #define SERVICE_STOPPED                        0x00000001
+  // #define SERVICE_START_PENDING                  0x00000002
+  // #define SERVICE_STOP_PENDING                   0x00000003
+  // #define SERVICE_RUNNING                        0x00000004
+  // #define SERVICE_CONTINUE_PENDING               0x00000005
+  // #define SERVICE_PAUSE_PENDING                  0x00000006
+  // #define SERVICE_PAUSED                         0x00000007
+  ConnectionStatus status;
+  switch (service_status.dwCurrentState) {
+    case SERVICE_RUNNING:
+      status = ConnectionStatus::connected;
+      break;
+    case SERVICE_STOPPED:
+    case SERVICE_PAUSED:
+      status = ConnectionStatus::disconnected;
+      break;
+    case SERVICE_START_PENDING:
+    case SERVICE_CONTINUE_PENDING:
+      status = ConnectionStatus::connecting;
+      break;
+    case SERVICE_STOP_PENDING:
+    case SERVICE_PAUSE_PENDING:
+      status = ConnectionStatus::disconnecting;
+      break;
+    default:
+      status = ConnectionStatus::unknown;
+  }
+
+  CloseServiceHandle(service);
+  CloseServiceHandle(service_manager);
+  return status;
 }
 
 }  // namespace wireguard_dart
