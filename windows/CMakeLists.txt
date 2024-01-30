@@ -30,6 +30,8 @@ list(APPEND PLUGIN_SOURCES
   "service_control.h"
   "connection_status.h"
   "connection_status.cpp"
+  "connection_status_observer.h"
+  "connection_status_observer.cpp"
   "utils.cpp"
   "utils.h"
 )

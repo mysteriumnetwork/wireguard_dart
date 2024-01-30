@@ -2,6 +2,7 @@
 
 // This must be included before many other Windows headers.
 #include <flutter/method_channel.h>
+#include <flutter/event_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 #include <libbase64.h>
@@ -17,6 +18,7 @@
 #include "tunnel.h"
 #include "utils.h"
 #include "wireguard.h"
+#include "connection_status_observer.h"
 
 namespace wireguard_dart {
 
@@ -30,6 +32,10 @@ void WireguardDartPlugin::RegisterWithRegistrar(flutter::PluginRegistrarWindows 
   channel->SetMethodCallHandler([plugin_pointer = plugin.get()](const auto &call, auto result) {
     plugin_pointer->HandleMethodCall(call, std::move(result));
   });
+
+  auto statusChannel = std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
+      registrar->messenger(), "wireguard_dart/status", &flutter::StandardMethodCodec::GetInstance());
+  statusChannel->SetStreamHandler(std::make_unique<ConnectionStatusObserver>());
 
   registrar->AddPlugin(std::move(plugin));
 }
