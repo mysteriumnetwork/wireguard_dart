@@ -31,28 +31,37 @@ void ServiceControl::Create(CreateArgs args) {
     throw ServiceControlException("Failed to open service manager", GetLastError());
   }
 
-  SC_HANDLE service = OpenService(service_manager, &service_name_[0], SC_MANAGER_ALL_ACCESS);
-  if (service != NULL) {
-    DeleteService(service);
-    CloseServiceHandle(service);
-  }
-
-  service = CreateService(service_manager,                   // SCM database
-                          &service_name_[0],                 // name of service
-                          &service_name_[0],                 // service name to display
-                          SERVICE_ALL_ACCESS,                // desired access
-                          SERVICE_WIN32_OWN_PROCESS,         // service type
-                          SERVICE_DEMAND_START,              // start type
-                          SERVICE_ERROR_NORMAL,              // error control type
-                          args.executable_and_args.c_str(),  // path to service's binary
-                          NULL,                              // no load ordering group
-                          NULL,                              // no tag identifier
-                          args.dependencies.c_str(),
-                          NULL,  // LocalSystem account
-                          NULL);
+  // Attempt to open and re-configure existing service by name.
+  // Otherwise create a new one.
+  SC_HANDLE service = OpenService(service_manager, &service_name_[0], SERVICE_ALL_ACCESS);
   if (service == NULL) {
-    CloseServiceHandle(service_manager);
-    throw ServiceControlException("Failed to create the service", GetLastError());
+    // Create a new service
+    service = CreateService(service_manager,                   // SCM database
+                            &service_name_[0],                 // name of service
+                            &service_name_[0],                 // service name to display
+                            SERVICE_ALL_ACCESS,                // desired access
+                            SERVICE_WIN32_OWN_PROCESS,         // service type
+                            SERVICE_DEMAND_START,              // start type
+                            SERVICE_ERROR_NORMAL,              // error control type
+                            args.executable_and_args.c_str(),  // path to service's binary
+                            NULL,                              // no load ordering group
+                            NULL,                              // no tag identifier
+                            args.dependencies.c_str(),
+                            NULL,  // LocalSystem account
+                            NULL);
+    if (service == NULL) {
+      CloseServiceHandle(service_manager);
+      throw ServiceControlException("Failed to create the service", GetLastError());
+    }
+  } else {
+    // Attempt to re-configure existing service
+    if (!ChangeServiceConfig(service, SERVICE_WIN32_OWN_PROCESS, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
+                             args.executable_and_args.c_str(), NULL, NULL, args.dependencies.c_str(), NULL, NULL,
+                             &service_name_[0])) {
+      CloseServiceHandle(service);
+      CloseServiceHandle(service_manager);
+      throw ServiceControlException("Failed to re-configure the service", GetLastError());
+    }
   }
 
   auto sid_type = SERVICE_SID_TYPE_UNRESTRICTED;
