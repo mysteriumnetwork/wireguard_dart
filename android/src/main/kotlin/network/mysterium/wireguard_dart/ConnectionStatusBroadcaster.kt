@@ -19,7 +19,7 @@ class ConnectionStatusBroadcaster : StreamHandler {
 
     fun send(status: ConnectionStatus) {
         Handler(Looper.getMainLooper()).post {
-            eventSink?.success(hashMapOf("status" to status.name))
+            eventSink?.success(status.name)
         }
     }
 }

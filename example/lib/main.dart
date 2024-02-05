@@ -91,7 +91,7 @@ class _MyAppState extends State<MyApp> {
 
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "Wiregard Dart (example)", win32ServiceName: winSvcName);
+      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
       debugPrint("Setup tunnel success");
     } catch (e) {
       developer.log(
