@@ -2,6 +2,7 @@
 #define WIREGUARD_DART_SERVICE_CONTROL_H
 
 #include <string>
+
 #include "connection_status.h"
 
 namespace wireguard_dart {
