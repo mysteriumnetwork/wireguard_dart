@@ -1,8 +1,9 @@
 #include "wireguard_dart_plugin.h"
 
 // This must be included before many other Windows headers.
-#include <flutter/method_channel.h>
 #include <flutter/event_channel.h>
+#include <flutter/event_stream_handler_functions.h>
+#include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 #include <libbase64.h>
@@ -13,12 +14,12 @@
 
 #include "config_writer.h"
 #include "connection_status.h"
+#include "connection_status_observer.h"
 #include "key_generator.h"
 #include "service_control.h"
 #include "tunnel.h"
 #include "utils.h"
 #include "wireguard.h"
-#include "connection_status_observer.h"
 
 namespace wireguard_dart {
 
@@ -33,16 +34,29 @@ void WireguardDartPlugin::RegisterWithRegistrar(flutter::PluginRegistrarWindows 
     plugin_pointer->HandleMethodCall(call, std::move(result));
   });
 
-  auto statusChannel = std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
+  auto status_channel = std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
       registrar->messenger(), "wireguard_dart/status", &flutter::StandardMethodCodec::GetInstance());
-  statusChannel->SetStreamHandler(std::make_unique<ConnectionStatusObserver>());
+
+  plugin->connection_status_observer_ = std::make_unique<ConnectionStatusObserver>();
+  auto status_channel_handler = std::make_unique<flutter::StreamHandlerFunctions<>>(
+      [plugin_pointer = plugin.get()](
+          const flutter::EncodableValue *args,
+          std::unique_ptr<flutter::EventSink<>> &&events) -> std::unique_ptr<flutter::StreamHandlerError<>> {
+        return plugin_pointer->connection_status_observer_->OnListen(args, std::move(events));
+      },
+      [plugin_pointer =
+           plugin.get()](const flutter::EncodableValue *arguments) -> std::unique_ptr<flutter::StreamHandlerError<>> {
+        return plugin_pointer->connection_status_observer_->OnCancel(arguments);
+      });
+
+  status_channel->SetStreamHandler(std::move(status_channel_handler));
 
   registrar->AddPlugin(std::move(plugin));
 }
 
 WireguardDartPlugin::WireguardDartPlugin() {}
 
-WireguardDartPlugin::~WireguardDartPlugin() {}
+WireguardDartPlugin::~WireguardDartPlugin() { this->connection_status_observer_.get()->StopObserving(); }
 
 void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue> &call,
                                            std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -83,6 +97,8 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       return;
     }
     this->tunnel_service_ = std::make_unique<ServiceControl>(Utf8ToWide(*arg_service_name));
+    this->connection_status_observer_.get()->StartObserving(Utf8ToWide(*arg_service_name));
+
     result->Success();
     return;
   }
@@ -113,8 +129,8 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     current_exec_dir = current_exec_dir.substr(0, current_exec_dir.find_last_of(L"\\/"));
 
     std::wostringstream service_exec_builder;
-    service_exec_builder << current_exec_dir << "\\wireguard_svc.exe" << L" -service"
-                         << L" -config-file=\"" << wg_config_filename << "\"";
+    service_exec_builder << current_exec_dir << "\\wireguard_svc.exe" << L" -service" << L" -config-file=\""
+                         << wg_config_filename << "\"";
     std::wstring service_exec = service_exec_builder.str();
 
     try {
@@ -122,20 +138,17 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       csa.description = tunnel_service->service_name_ + L" WireGuard tunnel";
       csa.executable_and_args = service_exec;
       csa.dependencies = L"Nsi\0TcpIp\0";
-
       tunnel_service->Create(csa);
     } catch (std::exception &e) {
       result->Error(std::string(e.what()));
       return;
     }
-
     try {
       tunnel_service->Start();
     } catch (std::exception &e) {
       result->Error(std::string(e.what()));
       return;
     }
-
     result->Success();
     return;
   }

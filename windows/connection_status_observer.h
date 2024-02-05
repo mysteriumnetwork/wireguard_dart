@@ -1,8 +1,11 @@
 #ifndef WIREGUARD_DART_CONNECTION_STATUS_OBSERVER_H
 #define WIREGUARD_DART_CONNECTION_STATUS_OBSERVER_H
 
-#include <flutter/event_channel.h>
 #include <flutter/encodable_value.h>
+#include <flutter/event_channel.h>
+#include <windows.h>
+
+#include <thread>
 
 namespace wireguard_dart {
 
@@ -10,6 +13,9 @@ class ConnectionStatusObserver : public flutter::StreamHandler<flutter::Encodabl
  public:
   ConnectionStatusObserver();
   virtual ~ConnectionStatusObserver();
+  void StartObserving(std::wstring service_name);
+  void StopObserving();
+  static void CALLBACK ServiceNotifyCallback(void* ptr);
 
  protected:
   virtual std::unique_ptr<flutter::StreamHandlerError<flutter::EncodableValue>> OnListenInternal(
@@ -19,7 +25,14 @@ class ConnectionStatusObserver : public flutter::StreamHandler<flutter::Encodabl
       const flutter::EncodableValue* arguments);
 
  private:
-  std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> sink;
+  std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> sink_;
+  PSC_NOTIFICATION_REGISTRATION subscription_;
+  void StartObservingThreadProc(std::wstring service_name);
+
+  void Shutdown();
+  std::thread watch_thread;
+  std::atomic_bool m_watch_thread_stop;
+  std::atomic_bool m_running;
 };
 
 }  // namespace wireguard_dart

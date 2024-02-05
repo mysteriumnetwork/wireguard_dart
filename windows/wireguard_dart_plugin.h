@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "service_control.h"
+#include "connection_status_observer.h"
 
 namespace wireguard_dart {
 
@@ -28,6 +29,7 @@ class WireguardDartPlugin : public flutter::Plugin {
                         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   std::unique_ptr<ServiceControl> tunnel_service_;
+  std::unique_ptr<ConnectionStatusObserver> connection_status_observer_;
 };
 
 }  // namespace wireguard_dart
