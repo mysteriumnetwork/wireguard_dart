@@ -20,4 +20,4 @@ To use this plugin, add `wireguard_dart` as a [dependency in your pubspec.yaml f
   - Add [minor] if it has new features
   - Otherwise, it's a patch release, don't add anything
 - After status checks are passed and PR is approved, merge it
-- Changes are automatically released as a new semantic version based on tags in the title
+- ~~Changes are automatically released as a new semantic version based on tags in the title~~ Changelog should be provided and committed manually

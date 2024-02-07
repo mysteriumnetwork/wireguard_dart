@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "connection_status.h"
+
 namespace wireguard_dart {
 
 struct CreateArgs {
@@ -19,6 +21,7 @@ class ServiceControl {
   void Start();
   void Stop();
   void Disable();
+  ConnectionStatus Status();
 };
 
 }  // namespace wireguard_dart

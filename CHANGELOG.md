@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.6.0) (2024-02-05)
+
+- android: Update API to match darwin implementation
+- windows: Implement connection status streaming via event channel
+- windows: minor fixes
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.5.0...0.6.0)
+
 ## [0.5.0](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.5.0) (2024-01-18)
 
 - darwin: Fix connection status streaming. Two available methods are `.status()` and `.statusStream()`
