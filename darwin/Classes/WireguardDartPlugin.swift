@@ -140,6 +140,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         mgr.isEnabled = true
 
         try await mgr.saveToPreferences()
+        try await mgr.loadFromPreferences()
 
         return mgr
     }
