@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.6.0) (2024-02-12)
+
+- android/darwin: Fix first connect failing
+
+[Full Changelog](https://github.com/mysteriumnetwork/wireguard_dart/compare/0.6.0...0.6.1)
+
 ## [0.6.0](https://github.com/mysteriumnetwork/wireguard_dart/tree/0.6.0) (2024-02-05)
 
 - android: Update API to match darwin implementation

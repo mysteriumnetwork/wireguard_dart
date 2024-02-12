@@ -1,27 +1,30 @@
 package network.mysterium.wireguard_dart
 
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import com.beust.klaxon.Klaxon
+import com.wireguard.android.backend.Backend
+import com.wireguard.android.backend.BackendException
+import com.wireguard.android.backend.GoBackend
+import com.wireguard.android.backend.Tunnel
+import com.wireguard.crypto.KeyPair
+import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
-
-import android.app.Activity
-import io.flutter.embedding.android.FlutterActivity
-import android.content.Intent
-import android.content.Context
-import android.util.Log
-import com.beust.klaxon.Klaxon
-import com.wireguard.android.backend.*
-import com.wireguard.crypto.KeyPair
-import io.flutter.plugin.common.EventChannel
-import kotlinx.coroutines.*
-
-
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
@@ -54,13 +57,15 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        havePermission =
-            (requestCode == PERMISSIONS_REQUEST_CODE) && (resultCode == Activity.RESULT_OK)
+        if (requestCode == PERMISSIONS_REQUEST_CODE) {
+            havePermission = resultCode == Activity.RESULT_OK
+        }
         return havePermission
     }
 
-    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-        this.activity = activityPluginBinding.activity as FlutterActivity
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        this.activity = binding.activity as FlutterActivity
+        binding.addActivityResultListener(this)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
