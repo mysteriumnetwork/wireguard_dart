@@ -143,12 +143,14 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       result->Error(std::string(e.what()));
       return;
     }
+    this->connection_status_observer_.get()->StartObserving(L"");
     try {
       tunnel_service->Start();
     } catch (std::exception &e) {
       result->Error(std::string(e.what()));
       return;
     }
+
     result->Success();
     return;
   }
