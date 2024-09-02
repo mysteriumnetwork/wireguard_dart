@@ -6,7 +6,6 @@
 #include <thread>
 
 #include "connection_status.h"
-
 namespace wireguard_dart {
 
 ConnectionStatusObserver::ConnectionStatusObserver() {}
@@ -17,7 +16,22 @@ void ConnectionStatusObserver::StartObserving(std::wstring service_name) {
   if (m_running.load() == true) {
     return;
   }
-  watch_thread = std::thread(&ConnectionStatusObserver::StartObservingThreadProc, this, service_name);
+  if (service_name.size() > 0) {
+    m_service_name = service_name;
+  }
+  SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+  if (service_manager == NULL) {
+    return;
+  }
+  SC_HANDLE service = OpenService(service_manager, &m_service_name[0], SERVICE_QUERY_STATUS | SERVICE_INTERROGATE);
+  if (service != NULL) {
+    m_running.store(true);
+    watch_thread = std::thread(&ConnectionStatusObserver::StartObservingThreadProc, this, service_manager, service);
+  } else {
+    CloseServiceHandle(service_manager);
+    m_running.store(false);
+    return;
+  }
 }
 
 void ConnectionStatusObserver::StopObserving() { m_watch_thread_stop.store(true); }
@@ -29,17 +43,7 @@ void ConnectionStatusObserver::Shutdown() {
   }
 }
 
-void ConnectionStatusObserver::StartObservingThreadProc(std::wstring service_name) {
-  m_running.store(true);
-  SC_HANDLE service_manager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-  if (service_manager == NULL) {
-    return;
-  }
-  SC_HANDLE service = OpenService(service_manager, &service_name[0], SERVICE_QUERY_STATUS | SERVICE_INTERROGATE);
-  if (service == NULL) {
-    CloseServiceHandle(service_manager);
-    return;
-  }
+void ConnectionStatusObserver::StartObservingThreadProc(SC_HANDLE service_manager, SC_HANDLE service) {
   SERVICE_NOTIFY s_notify = {0};
   s_notify.dwVersion = SERVICE_NOTIFY_STATUS_CHANGE;
   s_notify.pfnNotifyCallback = &ServiceNotifyCallback;

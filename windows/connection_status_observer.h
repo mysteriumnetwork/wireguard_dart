@@ -27,12 +27,13 @@ class ConnectionStatusObserver : public flutter::StreamHandler<flutter::Encodabl
  private:
   std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> sink_;
   PSC_NOTIFICATION_REGISTRATION subscription_;
-  void StartObservingThreadProc(std::wstring service_name);
+  void StartObservingThreadProc(SC_HANDLE service_manager, SC_HANDLE service);
 
   void Shutdown();
   std::thread watch_thread;
   std::atomic_bool m_watch_thread_stop;
   std::atomic_bool m_running;
+  std::wstring m_service_name;
 };
 
 }  // namespace wireguard_dart
