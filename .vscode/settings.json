@@ -1,7 +1,9 @@
 {
   "dart.lineLength": 150,
   "[dart]": {
-    "editor.rulers": [150]
+    "editor.rulers": [
+      150
+    ]
   },
   "files.insertFinalNewline": true,
   "files.associations": {
@@ -81,5 +83,6 @@
     "*.rh": "cpp"
   },
   "C_Cpp.clang_format_fallbackStyle": "Google",
-  "C_Cpp.clang_format_path": ""
+  "C_Cpp.clang_format_path": "",
+  "dart.flutterSdkPath": ".fvm/versions/3.24.1"
 }
