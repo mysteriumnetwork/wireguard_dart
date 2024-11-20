@@ -31,7 +31,7 @@ target "Runner" do
   use_frameworks!
   use_modular_headers!
 
-  pod 'WireGuardKit', :podspec => "https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.4/WireGuardKit.podspec"
+  pod 'WireGuardKit', :podspec => "https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.5/WireGuardKit.podspec"
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
