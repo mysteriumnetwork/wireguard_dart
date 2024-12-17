@@ -72,7 +72,12 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
   }
 
   if (call.method_name() == "checkTunnelConfiguration") {
-    result->Success(flutter::EncodableValue(true));
+    auto tunnel_service = this->tunnel_service_.get();
+    if (tunnel_service == nullptr) {
+      result->Success(flutter::EncodableValue(false));
+    } else {
+      result->Success(flutter::EncodableValue(true));
+    }
   }
 
   if (call.method_name() == "nativeInit") {
