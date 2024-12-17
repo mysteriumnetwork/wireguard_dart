@@ -71,6 +71,10 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     return;
   }
 
+  if (call.method_name() == "checkTunnelConfiguration") {
+    result->Success(flutter::EncodableValue(true));
+  }
+
   if (call.method_name() == "nativeInit") {
     // Disable packet forwarding that conflicts with WireGuard
     ServiceControl remoteAccessService = ServiceControl(L"RemoteAccess");
