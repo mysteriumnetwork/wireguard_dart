@@ -132,13 +132,21 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 call.argument<String>("tunnelName").toString(),
                 result
             )
-
+            "checkTunnelConfiguration" -> {
+                checkTunnelConfiguration(result)
+            }
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
             "statistics" -> statistics(result)
             else -> flutterNotImplemented(result)
         }
+    }
+
+    private fun checkTunnelConfiguration(result: MethodChannel.Result) {
+        val intent = GoBackend.VpnService.prepare(this.activity)
+        havePermission = intent == null
+        return result.success(havePermission)
     }
 
     private fun generateKeyPair(result: Result) {

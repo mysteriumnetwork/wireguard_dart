@@ -54,4 +54,16 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   Stream<ConnectionStatus> statusStream() {
     return statusChannel.receiveBroadcastStream().distinct().map((val) => ConnectionStatus.fromString(val));
   }
+
+  @override
+  Future<bool> checkTunnelConfiguration({
+    required String bundleId,
+    required String tunnelName,
+  }) async {
+    var result = await methodChannel.invokeMethod<bool>('checkTunnelConfiguration', {
+      'bundleId': bundleId,
+      'tunnelName': tunnelName,
+    });
+    return result as bool;
+  }
 }
