@@ -31,4 +31,11 @@ class WireguardDart {
   Stream<ConnectionStatus> statusStream() {
     return WireguardDartPlatform.instance.statusStream();
   }
+
+  Future<bool> checkTunnelConfiguration({required String bundleId, required String tunnelName}) {
+    return WireguardDartPlatform.instance.checkTunnelConfiguration(
+      bundleId: bundleId,
+      tunnelName: tunnelName,
+    );
+  }
 }

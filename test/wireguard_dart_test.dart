@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/wireguard_dart.dart';
 import 'package:wireguard_dart/wireguard_dart_method_channel.dart';
 import 'package:wireguard_dart/wireguard_dart_platform_interface.dart';
-import 'package:wireguard_dart/wireguard_dart.dart';
 
 class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements WireguardDartPlatform {
   @override
@@ -31,6 +31,9 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   Stream<ConnectionStatus> statusStream() {
     return Stream.value(ConnectionStatus.disconnected);
   }
+
+  @override
+  Future<bool> checkTunnelConfiguration({required String bundleId, required String tunnelName}) => Future.value(true);
 }
 
 void main() {
