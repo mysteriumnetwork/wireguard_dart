@@ -113,10 +113,13 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             Logger.main.debug("Connection configuration: \(cfg)")
             Task {
                 do {
-                    mgr.isEnabled = true
+                    if !mgr.isEnabled {
+                        mgr.isEnabled = true
+                        try await mgr.saveToPreferences()
+                        try await mgr.loadFromPreferences()
 
-                    try await mgr.saveToPreferences()
-                    try await mgr.loadFromPreferences()
+                    }
+
                     try mgr.connection.startVPNTunnel(options: [
                         "cfg": cfg as NSObject
                     ])
@@ -216,7 +219,7 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             }
         case "checkTunnelConfiguration":
             guard let args = call.arguments as? [String: Any],
-                let bundleId = args["bundleId"] as? String, !bundleId.isEmpty   
+                let bundleId = args["bundleId"] as? String, !bundleId.isEmpty
             else {
                 result(
                     nativeFlutterError(message: "required argument: 'bundleId'")
@@ -224,23 +227,26 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 return
             }
             guard let args = call.arguments as? [String: Any],
-                let tunnelName = args["tunnelName"] as? String, !tunnelName.isEmpty 
+                let tunnelName = args["tunnelName"] as? String,
+                !tunnelName.isEmpty
             else {
                 result(
-                    nativeFlutterError(message: "required argument: 'tunnelName'")
+                    nativeFlutterError(
+                        message: "required argument: 'tunnelName'")
                 )
                 return
             }
-           checkTunnelConfiguration(bundleId: bundleId, tunnelName: tunnelName) { manager in
-    if let vpnManager = manager {
-        self.vpnManager = vpnManager
-        Logger.main.debug("Tunnel is set up and existing")
-        result(true)
-    } else {
-        Logger.main.debug("Tunnel is not set up")
-        result(false)
-    }
-}
+            checkTunnelConfiguration(bundleId: bundleId, tunnelName: tunnelName)
+            { manager in
+                if let vpnManager = manager {
+                    self.vpnManager = vpnManager
+                    Logger.main.debug("Tunnel is set up and existing")
+                    result(true)
+                } else {
+                    Logger.main.debug("Tunnel is not set up")
+                    result(false)
+                }
+            }
 
         default:
             result(FlutterMethodNotImplemented)
@@ -270,26 +276,34 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         return mgr
     }
 
-func isVpnManagerConfigured(bundleId: String, tunnelName: String) async throws -> NETunnelProviderManager? {
-    // Load all managers from preferences
-    let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
-    if let existingMgr = mgrs.first(where: {
-        ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == bundleId
-    }) {
-        return existingMgr
+    func isVpnManagerConfigured(bundleId: String, tunnelName: String)
+        async throws -> NETunnelProviderManager?
+    {
+        // Load all managers from preferences
+        let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
+        if let existingMgr = mgrs.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?
+                .providerBundleIdentifier == bundleId
+        }) {
+            return existingMgr
+        }
+        return nil
     }
-    return nil
-}
 
-    func checkTunnelConfiguration(bundleId: String, tunnelName: String, result: @escaping (NETunnelProviderManager?) -> Void) {
-    Task {
-        do {
-            let mgr = try await isVpnManagerConfigured(bundleId: bundleId, tunnelName: tunnelName)
-            result(mgr)
-        } catch {
-            Logger.main.error("Error checking tunnel configuration: \(error)")
-            result(nil)
+    func checkTunnelConfiguration(
+        bundleId: String, tunnelName: String,
+        result: @escaping (NETunnelProviderManager?) -> Void
+    ) {
+        Task {
+            do {
+                let mgr = try await isVpnManagerConfigured(
+                    bundleId: bundleId, tunnelName: tunnelName)
+                result(mgr)
+            } catch {
+                Logger.main.error(
+                    "Error checking tunnel configuration: \(error)")
+                result(nil)
+            }
         }
     }
-}
 }
