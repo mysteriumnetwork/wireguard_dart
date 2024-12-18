@@ -12,7 +12,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<KeyPair> generateKeyPair() async {
-    final result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
+    var result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
     if (!result.containsKey('publicKey') || !result.containsKey('privateKey')) {
       throw StateError('Could not generate keypair');
     }
@@ -26,7 +26,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) async {
-    final args = {
+    var args = {
       'bundleId': bundleId,
       'tunnelName': tunnelName,
       if (win32ServiceName != null) 'win32ServiceName': win32ServiceName,
@@ -46,24 +46,12 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<ConnectionStatus> status() async {
-    final result = await methodChannel.invokeMethod<String>('status');
+    var result = await methodChannel.invokeMethod<String>('status');
     return ConnectionStatus.fromString(result ?? "");
   }
 
   @override
   Stream<ConnectionStatus> statusStream() {
     return statusChannel.receiveBroadcastStream().distinct().map((val) => ConnectionStatus.fromString(val));
-  }
-
-  @override
-  Future<bool> checkTunnelConfiguration({
-    required String bundleId,
-    required String tunnelName,
-  }) async {
-    final result = await methodChannel.invokeMethod<bool>('checkTunnelConfiguration', {
-      'bundleId': bundleId,
-      'tunnelName': tunnelName,
-    });
-    return result as bool;
   }
 }

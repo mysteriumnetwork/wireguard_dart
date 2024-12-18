@@ -52,11 +52,4 @@ abstract class WireguardDartPlatform extends PlatformInterface {
   Stream<ConnectionStatus> statusStream() {
     throw UnimplementedError('statusStream() has not been implemented');
   }
-
-  Future<bool> checkTunnelConfiguration({
-    required String bundleId,
-    required String tunnelName,
-  }) {
-    throw UnimplementedError('checkTunnelConfiguration() has not been implemented');
-  }
 }

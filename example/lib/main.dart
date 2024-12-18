@@ -5,7 +5,6 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
-import 'package:wireguard_dart/key_pair.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 
 const tunBundleId = "network.mysterium.wireguardDartExample.tun";
@@ -43,9 +42,6 @@ class _MyAppState extends State<MyApp> {
   final _wireguardDartPlugin = WireguardDart();
   ConnectionStatus _status = ConnectionStatus.unknown;
   late Stream<ConnectionStatus> _statusStream;
-  bool? _checkTunnelConfiguration;
-  bool? _isTunnelSetup;
-  KeyPair? _keyPair;
 
   @override
   void initState() {
@@ -79,10 +75,7 @@ class _MyAppState extends State<MyApp> {
   void generateKey() async {
     try {
       var keyPair = await _wireguardDartPlugin.generateKeyPair();
-      setState(() {
-        _keyPair = keyPair;
-      });
-      debugPrint('Generated key pair: $_keyPair');
+      debugPrint('Generated key pair: $keyPair');
     } catch (e) {
       developer.log(
         'Generated key',
@@ -96,35 +89,11 @@ class _MyAppState extends State<MyApp> {
     Isolate.spawn(nativeInitBackground, [rootIsolateToken]);
   }
 
-  Future<void> checkTunnelConfiguration() async {
-    try {
-      final status = await _wireguardDartPlugin.checkTunnelConfiguration(
-        bundleId: tunBundleId,
-        tunnelName: "WiregardDart",
-      );
-      setState(() {
-        _checkTunnelConfiguration = status;
-      });
-      debugPrint("Tunnel configured status: $_checkTunnelConfiguration");
-    } catch (e) {
-      developer.log(
-        'Is tunnel configured',
-        error: e,
-      );
-    }
-  }
-
   void setupTunnel() async {
     try {
       await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
-      setState(() {
-        _isTunnelSetup = true;
-      });
       debugPrint("Setup tunnel success");
     } catch (e) {
-      setState(() {
-        _isTunnelSetup = false;
-      });
       developer.log(
         'Setup tunnel',
         error: e,
@@ -186,10 +155,10 @@ class _MyAppState extends State<MyApp> {
               TextButton(
                 onPressed: generateKey,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Generate Key',
                   style: TextStyle(color: Colors.white),
@@ -199,10 +168,10 @@ class _MyAppState extends State<MyApp> {
               TextButton(
                 onPressed: nativeInit,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Native initialization',
                   style: TextStyle(color: Colors.white),
@@ -210,25 +179,12 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               TextButton(
-                onPressed: checkTunnelConfiguration,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
-                child: const Text(
-                  'Is Tunnel Configured',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
                 onPressed: setupTunnel,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Setup Tunnel',
                   style: TextStyle(color: Colors.white),
@@ -238,10 +194,10 @@ class _MyAppState extends State<MyApp> {
               TextButton(
                 onPressed: connect,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Connect',
                   style: TextStyle(color: Colors.white),
@@ -251,10 +207,10 @@ class _MyAppState extends State<MyApp> {
               TextButton(
                 onPressed: disconnect,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Disconnect',
                   style: TextStyle(color: Colors.white),
@@ -264,30 +220,27 @@ class _MyAppState extends State<MyApp> {
               TextButton(
                 onPressed: status,
                 style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    minimumSize: MaterialStateProperty.all<Size>(const Size(100, 50)),
+                    padding: MaterialStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                    backgroundColor: MaterialStateProperty.all<Color>(Colors.blueAccent),
+                    overlayColor: MaterialStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
                 child: const Text(
                   'Query status',
                   style: TextStyle(color: Colors.white),
                 ),
               ),
               const SizedBox(height: 20),
-              Text("Query tunnel status: ${_status.name}"),
+              Text(_status.name),
               StreamBuilder<ConnectionStatus>(
                   initialData: ConnectionStatus.unknown,
                   stream: _statusStream,
                   builder: (BuildContext context, AsyncSnapshot<ConnectionStatus> snapshot) {
                     // Check if the snapshot has data and is a map containing the 'status' key
                     if (snapshot.hasData) {
-                      return Text("Tunnel stream status: ${snapshot.data!.name}");
+                      return Text(snapshot.data!.name);
                     }
                     return const CircularProgressIndicator();
                   }),
-              Text('Tunnel configured: $_checkTunnelConfiguration'),
-              Text('Tunnel setup: $_isTunnelSetup'),
-              Text('Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
             ],
           ),
         ),
