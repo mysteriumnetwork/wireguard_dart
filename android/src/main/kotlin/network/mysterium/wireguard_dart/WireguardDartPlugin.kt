@@ -45,6 +45,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var config: com.wireguard.config.Config? = null
     private var tunnel: WireguardTunnel? = null
     private var tunnelName: String? = null
+    private var permissionsResultCallback: Result? = null
     private var status: ConnectionStatus = ConnectionStatus.disconnected
         set(value) {
             field = value
@@ -60,6 +61,16 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             havePermission = resultCode == Activity.RESULT_OK
+            if (havePermission) {
+                permissionsResultCallback?.success(null)
+            } else {
+                permissionsResultCallback?.error(
+                    "err_setup_tunnel",
+                    "Permissions are not given",
+                    null
+                )
+
+            }
         }
         return havePermission
     }
@@ -170,11 +181,9 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 flutterError(result, "Tunnel name is invalid")
                 return@launch
             }
+            permissionsResultCallback = result
             checkPermission()
-            if (havePermission) {
-                initTunnel(tunnelName)
-            }
-            result.success(null)
+            initTunnel(tunnelName)
         }
     }
 
