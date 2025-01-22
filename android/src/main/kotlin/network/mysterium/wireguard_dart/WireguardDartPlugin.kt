@@ -279,21 +279,17 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         channel.setMethodCallHandler(null)
     }
 
-    private fun status(result: Result) {
+    private  fun status(result: Result) {
         val status = queryStatus()
         result.success(status.name)
     }
 
-    private fun queryStatus(): ConnectionStatus {
+    private  fun queryStatus(): ConnectionStatus {
         if (tunnel == null) {
             return ConnectionStatus.unknown
         }
-        return when (backend?.getState(tunnel!!)) {
-            Tunnel.State.DOWN -> ConnectionStatus.disconnected
-            Tunnel.State.UP -> ConnectionStatus.connected
-            else -> ConnectionStatus.unknown
-        }
-    }
+
+        return if (backend?.getRunningTunnelNames()?.contains(tunnel!!.name)==true) ConnectionStatus.connected else ConnectionStatus.disconnected    }
 }
 
 typealias StateChangeCallback = (Tunnel.State) -> Unit
