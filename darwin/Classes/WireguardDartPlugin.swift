@@ -263,6 +263,15 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         })
         let mgr = existingMgr ?? NETunnelProviderManager()
 
+        try await configureManager(
+            mgr: mgr, bundleId: bundleId, tunnelName: tunnelName)
+
+        return mgr
+    }
+
+    func configureManager(
+        mgr: NETunnelProviderManager, bundleId: String, tunnelName: String
+    ) async throws {
         mgr.localizedDescription = tunnelName
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = bundleId
@@ -272,8 +281,6 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
 
         try await mgr.saveToPreferences()
         try await mgr.loadFromPreferences()
-
-        return mgr
     }
 
     func isVpnManagerConfigured(bundleId: String, tunnelName: String)
@@ -298,6 +305,10 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             do {
                 let mgr = try await isVpnManagerConfigured(
                     bundleId: bundleId, tunnelName: tunnelName)
+                if let mgr = mgr {
+                    try await configureManager(
+                        mgr: mgr, bundleId: bundleId, tunnelName: tunnelName)
+                }
                 result(mgr)
             } catch {
                 Logger.main.error(
