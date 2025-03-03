@@ -116,8 +116,7 @@ class _MyAppState extends State<MyApp> {
 
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(
-          bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
+      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
       setState(() {
         _isTunnelSetup = true;
       });
@@ -190,7 +189,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Generate Key',
                   style: TextStyle(color: Colors.white),
@@ -203,7 +202,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Native initialization',
                   style: TextStyle(color: Colors.white),
@@ -216,7 +215,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Is Tunnel Configured',
                   style: TextStyle(color: Colors.white),
@@ -229,7 +228,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Setup Tunnel',
                   style: TextStyle(color: Colors.white),
@@ -242,7 +241,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Connect',
                   style: TextStyle(color: Colors.white),
@@ -255,7 +254,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Disconnect',
                   style: TextStyle(color: Colors.white),
@@ -268,7 +267,7 @@ class _MyAppState extends State<MyApp> {
                     minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
                     padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
                     backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withOpacity(0.1))),
+                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                 child: const Text(
                   'Query status',
                   style: TextStyle(color: Colors.white),
@@ -288,8 +287,7 @@ class _MyAppState extends State<MyApp> {
                   }),
               Text('Tunnel configured: $_checkTunnelConfiguration'),
               Text('Tunnel setup: $_isTunnelSetup'),
-              Text(
-                  'Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
+              Text('Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
             ],
           ),
         ),
