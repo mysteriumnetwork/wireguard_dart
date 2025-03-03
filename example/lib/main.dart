@@ -116,7 +116,8 @@ class _MyAppState extends State<MyApp> {
 
   void setupTunnel() async {
     try {
-      await _wireguardDartPlugin.setupTunnel(bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
+      await _wireguardDartPlugin.setupTunnel(
+          bundleId: tunBundleId, tunnelName: "WiregardDart", win32ServiceName: winSvcName);
       setState(() {
         _isTunnelSetup = true;
       });
@@ -287,7 +288,8 @@ class _MyAppState extends State<MyApp> {
                   }),
               Text('Tunnel configured: $_checkTunnelConfiguration'),
               Text('Tunnel setup: $_isTunnelSetup'),
-              Text('Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
+              Text(
+                  'Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
             ],
           ),
         ),
