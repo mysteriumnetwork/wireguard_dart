@@ -33,7 +33,8 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     throw UnimplementedError('nativeInit() has not been implemented');
   }
 
-  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) {
+  Future<void> setupTunnel(
+      {required String bundleId, required String tunnelName, String? win32ServiceName}) {
     throw UnimplementedError('setupTunnel() has not been implemented');
   }
 
@@ -58,5 +59,9 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     required String tunnelName,
   }) {
     throw UnimplementedError('checkTunnelConfiguration() has not been implemented');
+  }
+
+  Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) {
+    throw UnimplementedError('removeTunnelConfiguration() has not been implemented');
   }
 }

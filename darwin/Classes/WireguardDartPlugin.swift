@@ -247,6 +247,31 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                     result(false)
                 }
             }
+        case "removeTunnelConfiguration":
+            guard let args = call.arguments as? [String: Any],
+                let bundleId = args["bundleId"] as? String, !bundleId.isEmpty,
+                let tunnelName = args["tunnelName"] as? String,
+                !tunnelName.isEmpty
+            else {
+                result(
+                    nativeFlutterError(
+                        message:
+                            "required arguments: 'bundleId' and 'tunnelName'"))
+                return
+            }
+            Task {
+                do {
+                    try await removeTunnelConfiguration(
+                        bundleId: bundleId, tunnelName: tunnelName)
+                    result(true)
+                } catch {
+                    result(
+                        nativeFlutterError(
+                            message:
+                                "Error removing tunnel configuration: \(error.localizedDescription)"
+                        ))
+                }
+            }
 
         default:
             result(FlutterMethodNotImplemented)
@@ -315,6 +340,40 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                     "Error checking tunnel configuration: \(error)")
                 result(nil)
             }
+        }
+    }
+
+    func removeTunnelConfiguration(bundleId: String, tunnelName: String)
+        async throws
+    {
+        let mgrs = try await NETunnelProviderManager.loadAllFromPreferences()
+        if let existingMgr = mgrs.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?
+                .providerBundleIdentifier == bundleId
+                && $0.localizedDescription == tunnelName
+        }) {
+            try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<Void, Error>) in
+                existingMgr.removeFromPreferences { error in
+                    if let error = error {
+                        Logger.main.error(
+                            "Error removing tunnel configuration: \(error)")
+                        continuation.resume(throwing: error)
+                    } else {
+                        Logger.main.debug(
+                            "Tunnel configuration removed successfully")
+                        self.vpnManager = nil
+                        continuation.resume(returning: ())
+                    }
+                }
+            }
+        } else {
+            Logger.main.debug("Tunnel configuration not found")
+            throw NSError(
+                domain: "WireguardDartPlugin", code: 404,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Tunnel configuration not found"
+                ])
         }
     }
 }

@@ -11,7 +11,9 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   Future<void> nativeInit() => Future.value();
 
   @override
-  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) => Future.value();
+  Future<void> setupTunnel(
+          {required String bundleId, required String tunnelName, String? win32ServiceName}) =>
+      Future.value();
 
   @override
   Future<void> connect({required String cfg}) => Future.value();
@@ -33,7 +35,12 @@ class MockWireguardDartPlatform with MockPlatformInterfaceMixin implements Wireg
   }
 
   @override
-  Future<bool> checkTunnelConfiguration({required String bundleId, required String tunnelName}) => Future.value(true);
+  Future<bool> checkTunnelConfiguration({required String bundleId, required String tunnelName}) =>
+      Future.value(true);
+
+  @override
+  Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) =>
+      Future.value();
 }
 
 void main() {
