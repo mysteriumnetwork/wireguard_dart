@@ -60,4 +60,8 @@ abstract class WireguardDartPlatform extends PlatformInterface {
   }) {
     throw UnimplementedError('checkTunnelConfiguration() has not been implemented');
   }
+
+  Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) {
+    throw UnimplementedError('removeTunnelConfiguration() has not been implemented');
+  }
 }

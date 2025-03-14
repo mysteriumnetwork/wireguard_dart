@@ -40,4 +40,11 @@ class WireguardDart {
       tunnelName: tunnelName,
     );
   }
+
+  Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) {
+    return WireguardDartPlatform.instance.removeTunnelConfiguration(
+      bundleId: bundleId,
+      tunnelName: tunnelName,
+    );
+  }
 }

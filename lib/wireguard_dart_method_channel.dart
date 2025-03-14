@@ -71,4 +71,13 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
     });
     return result as bool;
   }
+
+  @override
+  Future<void> removeTunnelConfiguration(
+      {required String bundleId, required String tunnelName}) async {
+    await methodChannel.invokeMethod<void>('removeTunnelConfiguration', {
+      'bundleId': bundleId,
+      'tunnelName': tunnelName,
+    });
+  }
 }
