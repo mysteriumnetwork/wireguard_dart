@@ -3,8 +3,11 @@ class TunnelStatistics {
   final int totalUpload;
   final int latestHandshake;
 
-  /// Constructor of the [Stats] class that receives [totalDownload] where total downloaded data is stored,
-  /// [totalUpload] where uploaded data is stored.
+  /// Constructor of the [TunnelStatistics] class that receives
+  /// [totalDownload], [totalUpload], and [latestHandshake] as parameters.
+  /// [totalDownload] and [totalUpload] are the total bytes downloaded
+  /// and uploaded, respectively. [latestHandshake] is the timestamp of
+  /// the latest handshake.
   TunnelStatistics({
     required this.totalDownload,
     required this.totalUpload,
@@ -13,9 +16,7 @@ class TunnelStatistics {
 
   /// Factory constructor that creates a [TunnelStatistics] object from a JSON map.
   factory TunnelStatistics.fromJson(Map<String, dynamic> json) => TunnelStatistics(
-      totalDownload: json['totalDownload'] as int,
-      totalUpload: json['totalUpload'] as int,
-      latestHandshake: json['latestHandshake'] as int);
+      totalDownload: json['totalDownload'] as int, totalUpload: json['totalUpload'] as int, latestHandshake: json['latestHandshake'] as int);
 
   /// Converts the [TunnelStatistics] object to a JSON map.
   Map<String, dynamic> toJson() => {
