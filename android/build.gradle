@@ -3,7 +3,7 @@ version '1.0-SNAPSHOT'
 
 buildscript {
     ext.kotlin_version = '1.8.20'
-    ext.wireguard_tunnel_version = '1.0.20230706'
+    ext.wireguard_tunnel_version = '1.0.20230427'
     repositories {
         google()
         mavenCentral()

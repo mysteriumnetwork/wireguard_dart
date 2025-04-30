@@ -151,7 +151,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
-            "statistics" -> statistics(result)
+            "tunnelStatistics" -> statistics(result)
             else -> flutterNotImplemented(result)
         }
     }
@@ -243,14 +243,21 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
 
     private fun statistics(result: Result) {
-        val tun = tunnel ?: run {
-            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
-            return
-        }
+        val tunnel =
+            tunnel ?: return result.error("err_setup_tunnel", "Tunnel is not initialized", null)
         scope.launch(Dispatchers.IO) {
             try {
-                val statistics = futureBackend.await().getStatistics(tun)
-                val stats = Stats(statistics.totalRx(), statistics.totalTx())
+                val statistics = futureBackend.await().getStatistics(tunnel)
+                var latestHandshake = 0L
+
+                for (key in statistics.peers()) {
+                    val peerStats = statistics.peer(key)
+                    if (peerStats !== null && peerStats.latestHandshakeEpochMillis > latestHandshake) {
+                        latestHandshake = peerStats.latestHandshakeEpochMillis
+                    }
+                }
+                val stats =
+                    TunnelStatistics(statistics.totalRx(), statistics.totalTx(), latestHandshake)
 
                 flutterSuccess(result, Klaxon().toJsonString(stats))
                 Log.i(TAG, "Statistics - ${stats.totalDownload} ${stats.totalUpload}")
@@ -311,9 +318,10 @@ class WireguardTunnel(
 
 }
 
-class Stats(
+class TunnelStatistics(
     val totalDownload: Long,
     val totalUpload: Long,
+    val latestHandshake: Long,
 )
 
 
