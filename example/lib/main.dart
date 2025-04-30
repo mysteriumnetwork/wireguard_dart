@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
+import 'package:wireguard_dart_example/snackbar.dart';
 
 const tunBundleId = "network.mysterium.wireguardDartExample.tun";
 const winSvcName = "Wireguard_Dart_Example";
@@ -46,6 +49,10 @@ class _MyAppState extends State<MyApp> {
   bool? _checkTunnelConfiguration;
   bool? _isTunnelSetup;
   KeyPair? _keyPair;
+  TunnelStatistics? _lastTunnelStatistics;
+  Stream<TunnelStatistics>? _tunnelStatisticsStream;
+  num uploadSpeedKBs = 0;
+  num downloadSpeedKBs = 0;
 
   @override
   void initState() {
@@ -83,10 +90,18 @@ class _MyAppState extends State<MyApp> {
         _keyPair = keyPair;
       });
       debugPrint('Generated key pair: $_keyPair');
+      showSnackbar(
+        "Generated key pair: ${keyPair.publicKey}",
+        type: MessageType.success,
+      );
     } catch (e) {
       developer.log(
         'Generated key',
         error: e,
+      );
+      showSnackbar(
+        "Failed to generate key pair: ${e.toString()}",
+        type: MessageType.error,
       );
     }
   }
@@ -106,10 +121,18 @@ class _MyAppState extends State<MyApp> {
         _checkTunnelConfiguration = status;
       });
       debugPrint("Tunnel configured status: $_checkTunnelConfiguration");
+      showSnackbar(
+        "Tunnel configured status: $_checkTunnelConfiguration",
+        type: MessageType.success,
+      );
     } catch (e) {
       developer.log(
         'Is tunnel configured',
         error: e,
+      );
+      showSnackbar(
+        "Failed to check tunnel configuration: ${e.toString()}",
+        type: MessageType.error,
       );
     }
   }
@@ -121,6 +144,10 @@ class _MyAppState extends State<MyApp> {
         _isTunnelSetup = true;
       });
       debugPrint("Setup tunnel success");
+      showSnackbar(
+        "Setup tunnel success",
+        type: MessageType.success,
+      );
     } catch (e) {
       setState(() {
         _isTunnelSetup = false;
@@ -129,18 +156,42 @@ class _MyAppState extends State<MyApp> {
         'Setup tunnel',
         error: e,
       );
+      showSnackbar(
+        "Failed to setup tunnel: ${e.toString()}",
+        type: MessageType.error,
+      );
     }
   }
 
   void connect() async {
     try {
       // replace with valid config file before running
-      await _wireguardDartPlugin.connect(cfg: """""");
+      await _wireguardDartPlugin.connect(cfg: """[Interface]
+PrivateKey = sNZqIaVz0+IplcufR7jvd8wBS82vx9vhiFz15E3hB0U=
+Address = 10.181.100.160
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = rduXTxBoMW6VPQWiYvlJDyG0YBEpvjAeuhDFFippQFk=
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = 167.235.144.168:56666
+PersistentKeepalive = 25""");
       debugPrint("Connect success");
+      showSnackbar(
+        "Connect success",
+        type: MessageType.success,
+      );
+      setState(() {
+        _tunnelStatisticsStream = tunnelStatisticsStream(const Duration(seconds: 1));
+      });
     } catch (e) {
       developer.log(
         'Connect',
         error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to connect: ${e.toString()}",
+        type: MessageType.error,
       );
     }
   }
@@ -149,10 +200,18 @@ class _MyAppState extends State<MyApp> {
     try {
       await _wireguardDartPlugin.disconnect();
       debugPrint("Disconnect success");
+      showSnackbar(
+        "Disconnect success",
+        type: MessageType.success,
+      );
     } catch (e) {
       developer.log(
         'Disconnect',
         error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to disconnect: ${e.toString()}",
+        type: MessageType.error,
       );
     }
   }
@@ -161,10 +220,18 @@ class _MyAppState extends State<MyApp> {
     try {
       await _wireguardDartPlugin.removeTunnelConfiguration(bundleId: tunBundleId, tunnelName: "WiregardDart");
       debugPrint("Remove tunnel configuration success");
+      showSnackbar(
+        "Remove tunnel configuration success",
+        type: MessageType.success,
+      );
     } catch (e) {
       developer.log(
         'Remove tunnel configuration',
         error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to remove tunnel configuration: ${e.toString()}",
+        type: MessageType.error,
       );
     }
   }
@@ -176,14 +243,53 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         _status = status;
       });
+      showSnackbar(
+        "Connection status: ${status.name}",
+        type: MessageType.success,
+      );
     } catch (e) {
       developer.log("Connection status", error: e.toString());
+      showSnackbar(
+        "Failed to get connection status: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Future<void> getTunnelStatistics() async {
+    try {
+      var stats = await _wireguardDartPlugin.getTunnelStatistics();
+      debugPrint("Tunnel statistics: $stats");
+      showSnackbar(
+        "Tunnel statistics: ${stats?.toJson()}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log("Tunnel statistics", error: e.toString());
+      showSnackbar(
+        "Failed to get tunnel statistics: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Stream<TunnelStatistics> tunnelStatisticsStream(Duration interval) async* {
+    while (true) {
+      await Future.delayed(interval);
+      final prevStats = _lastTunnelStatistics;
+      var stats = await _wireguardDartPlugin.getTunnelStatistics();
+      if (prevStats != null && stats != null) {
+        uploadSpeedKBs = ((stats.totalUpload - prevStats.totalUpload) / interval.inSeconds) / 1024;
+        downloadSpeedKBs = ((stats.totalDownload - prevStats.totalDownload) / interval.inSeconds) / 1024;
+      }
+      yield _lastTunnelStatistics = stats!;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: snackbarKey,
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Plugin example app'),
@@ -191,129 +297,162 @@ class _MyAppState extends State<MyApp> {
         body: Container(
           constraints: const BoxConstraints.expand(),
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: generateKey,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Generate Key',
-                  style: TextStyle(color: Colors.white),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    TextButton(
+                      onPressed: generateKey,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Generate Key',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    if (Platform.isWindows)
+                      TextButton(
+                        onPressed: nativeInit,
+                        style: ButtonStyle(
+                            minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                            padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                            backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                            overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                        child: const Text(
+                          'Native initialization',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: checkTunnelConfiguration,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Is Tunnel Configured',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: setupTunnel,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Setup Tunnel',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: connect,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Connect',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: disconnect,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Disconnect',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    if (Platform.isIOS || Platform.isMacOS)
+                      TextButton(
+                        onPressed: removeTunnelConfiguration,
+                        style: ButtonStyle(
+                            minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                            padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                            backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                            overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                        child: const Text(
+                          'Remove tunnel configuration',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: status,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Query status',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: getTunnelStatistics,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Get tunnel statistics',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: nativeInit,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Native initialization',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: checkTunnelConfiguration,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Is Tunnel Configured',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: setupTunnel,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Setup Tunnel',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: connect,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Connect',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: disconnect,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Disconnect',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: removeTunnelConfiguration,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Remove tunnel configuration',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: status,
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
-                    padding: WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
-                    backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
-                    overlayColor: WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
-                child: const Text(
-                  'Query status',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text("Query tunnel status: ${_status.name}"),
-              StreamBuilder<ConnectionStatus>(
-                  initialData: ConnectionStatus.unknown,
-                  stream: _statusStream,
-                  builder: (BuildContext context, AsyncSnapshot<ConnectionStatus> snapshot) {
-                    // Check if the snapshot has data and is a map containing the 'status' key
-                    if (snapshot.hasData) {
-                      return Text("Tunnel stream status: ${snapshot.data!.name}");
-                    }
-                    return const CircularProgressIndicator();
-                  }),
-              Text('Tunnel configured: $_checkTunnelConfiguration'),
-              Text('Tunnel setup: $_isTunnelSetup'),
-              Text('Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
-            ],
+                const SizedBox(height: 20),
+                Text("Query tunnel status: ${_status.name}"),
+                StreamBuilder<ConnectionStatus>(
+                    initialData: ConnectionStatus.unknown,
+                    stream: _statusStream,
+                    builder: (BuildContext context, AsyncSnapshot<ConnectionStatus> snapshot) {
+                      // Check if the snapshot has data and is a map containing the 'status' key
+                      if (snapshot.hasData) {
+                        return Text("Tunnel stream status: ${snapshot.data!.name}");
+                      }
+                      return const CircularProgressIndicator();
+                    }),
+                Text('Tunnel configured: $_checkTunnelConfiguration'),
+                Text('Tunnel setup: $_isTunnelSetup'),
+                Text('Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
+                StreamBuilder<TunnelStatistics>(
+                    initialData: TunnelStatistics(latestHandshake: 0, totalDownload: 0, totalUpload: 0),
+                    stream: _tunnelStatisticsStream,
+                    builder: (BuildContext context, AsyncSnapshot<TunnelStatistics> snapshot) {
+                      // Check if the snapshot has data and is a map containing the 'status' key
+                      if (snapshot.hasData) {
+                        final handshakeTime = DateTime.fromMillisecondsSinceEpoch(snapshot.data!.latestHandshake.toInt()).toLocal();
+                        return Text(
+                          """Tunnel statistics:
+                        Latest handshake: $handshakeTime
+                        Total download: ${snapshot.data?.totalDownload}
+                        Total Upload: ${snapshot.data?.totalUpload}
+                        Upload speed: ${uploadSpeedKBs.toStringAsFixed(2)} KB/s
+                        Download speed: ${downloadSpeedKBs.toStringAsFixed(2)} KB/s
+
+                            """,
+                        );
+                      }
+                      return const CircularProgressIndicator();
+                    }),
+              ],
+            ),
           ),
         ),
       ),
