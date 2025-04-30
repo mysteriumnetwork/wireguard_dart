@@ -260,7 +260,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                     TunnelStatistics(statistics.totalRx(), statistics.totalTx(), latestHandshake)
 
                 flutterSuccess(result, Klaxon().toJsonString(stats))
-                Log.i(TAG, "Statistics - ${stats.totalDownload} ${stats.totalUpload}")
+                Log.i(
+                    TAG,
+                    "Statistics - ${stats.totalDownload} ${stats.totalUpload} ${stats.latestHandshake}"
+                )
 
             } catch (e: BackendException) {
                 Log.e(TAG, "Statistics - BackendException - ERROR - ${e.reason} ", e)
