@@ -26,3 +26,5 @@ doc/api/
 
 # FVM Version Cache
 .fvm/
+
+/test/*.mocks.dart
