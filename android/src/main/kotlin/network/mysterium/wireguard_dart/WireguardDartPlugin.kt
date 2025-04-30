@@ -12,6 +12,7 @@ import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wireguard.crypto.KeyPair
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -75,9 +76,13 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         return havePermission
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        this.activity = binding.activity as FlutterActivity
-        binding.addActivityResultListener(this)
+    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
+        if (activityPluginBinding.activity is FlutterFragmentActivity) {
+            this.activity = activityPluginBinding.activity as FlutterFragmentActivity
+        } else if (activityPluginBinding.activity is FlutterActivity) {
+            this.activity = activityPluginBinding.activity as FlutterActivity
+        }
+        activityPluginBinding.addActivityResultListener(this)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -85,6 +90,11 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
+        if (activityPluginBinding.activity is FlutterFragmentActivity) {
+            this.activity = activityPluginBinding.activity as FlutterFragmentActivity
+        } else if (activityPluginBinding.activity is FlutterActivity) {
+            this.activity = activityPluginBinding.activity as FlutterActivity
+        }
         this.activity = activityPluginBinding.activity as FlutterActivity
     }
 
@@ -151,7 +161,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
-            "statistics" -> statistics(result)
+            "tunnelStatistics" -> statistics(result)
             else -> flutterNotImplemented(result)
         }
     }
@@ -243,17 +253,27 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
 
     private fun statistics(result: Result) {
-        val tun = tunnel ?: run {
-            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
-            return
-        }
+        val tunnel =
+            tunnel ?: return result.error("err_setup_tunnel", "Tunnel is not initialized", null)
         scope.launch(Dispatchers.IO) {
             try {
-                val statistics = futureBackend.await().getStatistics(tun)
-                val stats = Stats(statistics.totalRx(), statistics.totalTx())
+                val statistics = futureBackend.await().getStatistics(tunnel)
+                var latestHandshake = 0L
+
+                for (key in statistics.peers()) {
+                    val peerStats = statistics.peer(key)
+                    if (peerStats !== null && peerStats.latestHandshakeEpochMillis > latestHandshake) {
+                        latestHandshake = peerStats.latestHandshakeEpochMillis
+                    }
+                }
+                val stats =
+                    TunnelStatistics(statistics.totalRx(), statistics.totalTx(), latestHandshake)
 
                 flutterSuccess(result, Klaxon().toJsonString(stats))
-                Log.i(TAG, "Statistics - ${stats.totalDownload} ${stats.totalUpload}")
+                Log.i(
+                    TAG,
+                    "Statistics - ${stats.totalDownload} ${stats.totalUpload} ${stats.latestHandshake}"
+                )
 
             } catch (e: BackendException) {
                 Log.e(TAG, "Statistics - BackendException - ERROR - ${e.reason} ", e)
@@ -311,9 +331,10 @@ class WireguardTunnel(
 
 }
 
-class Stats(
+class TunnelStatistics(
     val totalDownload: Long,
     val totalUpload: Long,
+    val latestHandshake: Long,
 )
 
 

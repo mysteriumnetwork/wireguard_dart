@@ -1,4 +1,5 @@
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 
 import 'connection_status.dart';
 import 'wireguard_dart_platform_interface.dart';
@@ -46,5 +47,9 @@ class WireguardDart {
       bundleId: bundleId,
       tunnelName: tunnelName,
     );
+  }
+
+  Future<TunnelStatistics?> getTunnelStatistics() {
+    return WireguardDartPlatform.instance.getTunnelStatistics();
   }
 }

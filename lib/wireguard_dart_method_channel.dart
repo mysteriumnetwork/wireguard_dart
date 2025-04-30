@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
@@ -79,5 +82,16 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
       'bundleId': bundleId,
       'tunnelName': tunnelName,
     });
+  }
+
+  @override
+  Future<TunnelStatistics?> getTunnelStatistics() async {
+    try {
+      final result = await methodChannel.invokeMethod('tunnelStatistics');
+      final stats = TunnelStatistics.fromJson(jsonDecode(result));
+      return stats;
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 }
