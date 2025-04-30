@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:wireguard_dart/connection_status.dart';
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
@@ -12,8 +15,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<KeyPair> generateKeyPair() async {
-    final result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ??
-        <String, String>{};
+    final result = await methodChannel.invokeMapMethod<String, String>('generateKeyPair') ?? <String, String>{};
     if (!result.containsKey('publicKey') || !result.containsKey('privateKey')) {
       throw StateError('Could not generate keypair');
     }
@@ -26,8 +28,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   }
 
   @override
-  Future<void> setupTunnel(
-      {required String bundleId, required String tunnelName, String? win32ServiceName}) async {
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) async {
     final args = {
       'bundleId': bundleId,
       'tunnelName': tunnelName,
@@ -54,10 +55,7 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Stream<ConnectionStatus> statusStream() {
-    return statusChannel
-        .receiveBroadcastStream()
-        .distinct()
-        .map((val) => ConnectionStatus.fromString(val));
+    return statusChannel.receiveBroadcastStream().distinct().map((val) => ConnectionStatus.fromString(val));
   }
 
   @override
@@ -73,11 +71,21 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
   }
 
   @override
-  Future<void> removeTunnelConfiguration(
-      {required String bundleId, required String tunnelName}) async {
+  Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) async {
     await methodChannel.invokeMethod<void>('removeTunnelConfiguration', {
       'bundleId': bundleId,
       'tunnelName': tunnelName,
     });
+  }
+
+  @override
+  Future<TunnelStatistics?> getTunnelStatistics() async {
+    try {
+      final result = await methodChannel.invokeMethod('tunnelStatistics');
+      final stats = TunnelStatistics.fromJson(jsonDecode(result));
+      return stats;
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 }

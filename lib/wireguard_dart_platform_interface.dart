@@ -1,4 +1,5 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 
 import 'connection_status.dart';
 import 'key_pair.dart';
@@ -33,8 +34,7 @@ abstract class WireguardDartPlatform extends PlatformInterface {
     throw UnimplementedError('nativeInit() has not been implemented');
   }
 
-  Future<void> setupTunnel(
-      {required String bundleId, required String tunnelName, String? win32ServiceName}) {
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) {
     throw UnimplementedError('setupTunnel() has not been implemented');
   }
 
@@ -63,5 +63,9 @@ abstract class WireguardDartPlatform extends PlatformInterface {
 
   Future<void> removeTunnelConfiguration({required String bundleId, required String tunnelName}) {
     throw UnimplementedError('removeTunnelConfiguration() has not been implemented');
+  }
+
+  Future<TunnelStatistics?> getTunnelStatistics() {
+    throw UnimplementedError('getTunnelStatistics() has not been implemented');
   }
 }

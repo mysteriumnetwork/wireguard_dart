@@ -1,4 +1,5 @@
 import 'package:wireguard_dart/key_pair.dart';
+import 'package:wireguard_dart/tunnel_statistics.dart';
 
 import 'connection_status.dart';
 import 'wireguard_dart_platform_interface.dart';
@@ -12,10 +13,8 @@ class WireguardDart {
     return WireguardDartPlatform.instance.nativeInit();
   }
 
-  Future<void> setupTunnel(
-      {required String bundleId, required String tunnelName, String? win32ServiceName}) {
-    return WireguardDartPlatform.instance.setupTunnel(
-        bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) {
+    return WireguardDartPlatform.instance.setupTunnel(bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
   }
 
   Future<void> connect({required String cfg}) {
@@ -46,5 +45,9 @@ class WireguardDart {
       bundleId: bundleId,
       tunnelName: tunnelName,
     );
+  }
+
+  Future<TunnelStatistics?> getTunnelStatistics() {
+    return WireguardDartPlatform.instance.getTunnelStatistics();
   }
 }
