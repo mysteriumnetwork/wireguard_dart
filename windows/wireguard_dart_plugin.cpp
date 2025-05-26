@@ -21,6 +21,9 @@
 #include "utils.h"
 #include "wireguard.h"
 
+// Declare the function prototype
+std::string GetLastErrorAsString(DWORD error_code);
+
 namespace wireguard_dart {
 
 // static
@@ -152,11 +155,34 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     this->connection_status_observer_.get()->StartObserving(L"");
     try {
       tunnel_service->Start();
-    } catch (std::exception &e) {
-      result->Error(std::string(e.what()));
+    } catch (const std::runtime_error &e) {
+      // Handle runtime errors with a specific error code and detailed message
+      std::string error_message = "Runtime error while starting the tunnel service: ";
+      error_message += e.what();
+      result->Error("RUNTIME_ERROR", error_message);  // Error code: RUNTIME_ERROR
+      return;
+    } catch (const std::exception &e) {
+      // Handle service exceptions with a specific error code and detailed message
+      DWORD error_code = GetLastError();  // Retrieve the last Windows error code
+      std::string error_message = "Exception while starting the tunnel service: ";
+      error_message += e.what();
+      if (error_code != 0) {
+        error_message += " Windows Error Code: " + std::to_string(error_code) + ".";
+        error_message += " Description: " + GetLastErrorAsString(error_code);
+      }
+      result->Error("SERVICE_EXCEPTION", error_message);  // Error code: SERVICE_EXCEPTION
+      return;
+    } catch (...) {
+      // Handle unknown exceptions with additional details
+      DWORD error_code = GetLastError();  // Retrieve the last Windows error code
+      std::string error_message = "An unknown error occurred while starting the tunnel service.";
+      if (error_code != 0) {
+        error_message += " Windows Error Code: " + std::to_string(error_code) + ".";
+        error_message += " Description: " + GetLastErrorAsString(error_code);
+      }
+      result->Error("UNKNOWN_ERROR", error_message);  // Error code: UNKNOWN_ERROR
       return;
     }
-
     result->Success();
     return;
   }
@@ -170,8 +196,33 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
 
     try {
       tunnel_service->Stop();
-    } catch (std::exception &e) {
-      result->Error(std::string(e.what()));
+    } catch (const std::runtime_error &e) {
+      // Handle runtime errors with a specific error code and detailed message
+      std::string error_message = "Runtime error while stopping the tunnel service: ";
+      error_message += e.what();
+      result->Error("RUNTIME_ERROR", error_message);  // Error code: RUNTIME_ERROR
+      return;
+    } catch (const std::exception &e) {
+      // Handle service exceptions with a specific error code and detailed message
+      DWORD error_code = GetLastError();  // Retrieve the last Windows error code
+      std::string error_message = "Exception while stopping the tunnel service: ";
+      error_message += e.what();
+      if (error_code != 0) {
+        error_message += " Windows Error Code: " + std::to_string(error_code) + ".";
+        error_message += " Description: " + GetLastErrorAsString(error_code);
+      }
+      result->Error("SERVICE_EXCEPTION", error_message);  // Error code: SERVICE_EXCEPTION
+      return;
+    } catch (...) {
+      // Handle unknown exceptions with additional details
+      DWORD error_code = GetLastError();  // Retrieve the last Windows error code
+      std::string error_message = "An unknown error occurred while stopping the tunnel service.";
+      if (error_code != 0) {
+        error_message += " Windows Error Code: " + std::to_string(error_code) + ".";
+        error_message += " Description: " + GetLastErrorAsString(error_code);
+      }
+      result->Error("UNKNOWN_ERROR", error_message);  // Error code: UNKNOWN_ERROR
+      return;
     }
 
     result->Success();
@@ -198,3 +249,23 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
 }
 
 }  // namespace wireguard_dart
+
+std::string GetLastErrorAsString(DWORD error_code) {
+  if (error_code == 0) {
+    return "No error.";
+  }
+
+  LPSTR message_buffer = nullptr;
+  size_t size =
+      FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                     error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message_buffer, 0, NULL);
+
+  std::string message;
+  if (size != 0 && message_buffer != nullptr) {
+    message.assign(message_buffer, size);
+    LocalFree(message_buffer);
+  } else {
+    message = "Unknown error code: " + std::to_string(error_code);
+  }
+  return message;
+}

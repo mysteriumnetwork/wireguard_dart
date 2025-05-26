@@ -167,16 +167,7 @@ class _MyAppState extends State<MyApp> {
   void connect() async {
     try {
       // replace with valid config file before running
-      await _wireguardDartPlugin.connect(cfg: """[Interface]
-PrivateKey = sNZqIaVz0+IplcufR7jvd8wBS82vx9vhiFz15E3hB0U=
-Address = 10.181.100.160
-DNS = 1.1.1.1
-
-[Peer]
-PublicKey = rduXTxBoMW6VPQWiYvlJDyG0YBEpvjAeuhDFFippQFk=
-AllowedIPs = 0.0.0.0/0, ::/0
-Endpoint = 167.235.144.168:56666
-PersistentKeepalive = 25""");
+      await _wireguardDartPlugin.connect(cfg: """""");
       debugPrint("Connect success");
       showSnackbar(
         "Connect success",
@@ -454,8 +445,8 @@ PersistentKeepalive = 25""");
                 Text(
                     'Key pair:\n Public key:${_keyPair?.publicKey}\n Private key:${_keyPair?.privateKey}'),
                 StreamBuilder<TunnelStatistics>(
-                    initialData:
-                        TunnelStatistics(latestHandshake: 0, totalDownload: 0, totalUpload: 0),
+                    initialData: const TunnelStatistics(
+                        latestHandshake: 0, totalDownload: 0, totalUpload: 0),
                     stream: _tunnelStatisticsStream,
                     builder: (BuildContext context, AsyncSnapshot<TunnelStatistics> snapshot) {
                       // Check if the snapshot has data and is a map containing the 'status' key
