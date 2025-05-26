@@ -160,6 +160,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       std::string error_message = "Runtime error while starting the tunnel service: ";
       error_message += e.what();
       result->Error("RUNTIME_ERROR", error_message);  // Error code: RUNTIME_ERROR
+      return;
     } catch (const std::exception &e) {
       // Handle service exceptions with a specific error code and detailed message
       DWORD error_code = GetLastError();  // Retrieve the last Windows error code
@@ -170,6 +171,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
         error_message += " Description: " + GetLastErrorAsString(error_code);
       }
       result->Error("SERVICE_EXCEPTION", error_message);  // Error code: SERVICE_EXCEPTION
+      return;
     } catch (...) {
       // Handle unknown exceptions with additional details
       DWORD error_code = GetLastError();  // Retrieve the last Windows error code
@@ -179,6 +181,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
         error_message += " Description: " + GetLastErrorAsString(error_code);
       }
       result->Error("UNKNOWN_ERROR", error_message);  // Error code: UNKNOWN_ERROR
+      return;
     }
     result->Success();
     return;
@@ -198,6 +201,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       std::string error_message = "Runtime error while stopping the tunnel service: ";
       error_message += e.what();
       result->Error("RUNTIME_ERROR", error_message);  // Error code: RUNTIME_ERROR
+      return;
     } catch (const std::exception &e) {
       // Handle service exceptions with a specific error code and detailed message
       DWORD error_code = GetLastError();  // Retrieve the last Windows error code
@@ -208,6 +212,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
         error_message += " Description: " + GetLastErrorAsString(error_code);
       }
       result->Error("SERVICE_EXCEPTION", error_message);  // Error code: SERVICE_EXCEPTION
+      return;
     } catch (...) {
       // Handle unknown exceptions with additional details
       DWORD error_code = GetLastError();  // Retrieve the last Windows error code
@@ -217,6 +222,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
         error_message += " Description: " + GetLastErrorAsString(error_code);
       }
       result->Error("UNKNOWN_ERROR", error_message);  // Error code: UNKNOWN_ERROR
+      return;
     }
 
     result->Success();
