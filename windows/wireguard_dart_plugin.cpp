@@ -260,7 +260,12 @@ std::string GetLastErrorAsString(DWORD error_code) {
       FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
                      error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message_buffer, 0, NULL);
 
-  std::string message(message_buffer, size);
-  LocalFree(message_buffer);
+  std::string message;
+  if (size != 0 && message_buffer != nullptr) {
+    message.assign(message_buffer, size);
+    LocalFree(message_buffer);
+  } else {
+    message = "Unknown error code: " + std::to_string(error_code);
+  }
   return message;
 }
