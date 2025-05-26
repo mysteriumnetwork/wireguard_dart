@@ -21,6 +21,9 @@
 #include "utils.h"
 #include "wireguard.h"
 
+// Declare the function prototype
+std::string GetLastErrorAsString(DWORD error_code);
+
 namespace wireguard_dart {
 
 // static
@@ -240,6 +243,8 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
   result->NotImplemented();
 }
 
+}  // namespace wireguard_dart
+
 std::string GetLastErrorAsString(DWORD error_code) {
   if (error_code == 0) {
     return "No error.";
@@ -254,5 +259,3 @@ std::string GetLastErrorAsString(DWORD error_code) {
   LocalFree(message_buffer);
   return message;
 }
-
-}  // namespace wireguard_dart
