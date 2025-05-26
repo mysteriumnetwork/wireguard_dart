@@ -193,7 +193,6 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
 
     try {
       tunnel_service->Stop();
-      result->Success();  // Indicate success if no exception is thrown
     } catch (const std::runtime_error &e) {
       // Handle runtime errors with a specific error code and detailed message
       std::string error_message = "Runtime error while stopping the tunnel service: ";
