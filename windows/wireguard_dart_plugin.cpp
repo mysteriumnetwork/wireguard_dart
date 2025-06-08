@@ -106,6 +106,8 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       return;
     }
     if (this->tunnel_service_ != nullptr) {
+      // Ensure the observer is started even if the tunnel service already exists
+      this->connection_status_observer_.get()->StartObserving(Utf8ToWide(*arg_service_name));
       result->Success();
       return;
     }
