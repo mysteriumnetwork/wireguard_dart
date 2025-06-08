@@ -105,7 +105,16 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       result->Error("Argument 'win32ServiceName' is required");
       return;
     }
-    this->tunnel_service_ = std::make_unique<ServiceControl>(Utf8ToWide(*arg_service_name));
+    if (this->tunnel_service_ != nullptr) {
+      result->Success();
+      return;
+    }
+    try {
+      this->tunnel_service_ = std::make_unique<ServiceControl>(Utf8ToWide(*arg_service_name));
+    } catch (const std::exception &e) {
+      result->Error("SERVICE_CONTROL_INIT_ERROR", std::string("Failed to initialize ServiceControl: ") + e.what());
+      return;
+    }
     this->connection_status_observer_.get()->StartObserving(Utf8ToWide(*arg_service_name));
 
     result->Success();
@@ -232,8 +241,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
   if (call.method_name() == "status") {
     auto tunnel_service = this->tunnel_service_.get();
     if (tunnel_service == nullptr) {
-      result->Error("Invalid state: call 'setupTunnel' first");
-      return;
+      return result->Success(ConnectionStatusToString(ConnectionStatus::disconnected));
     }
 
     try {
