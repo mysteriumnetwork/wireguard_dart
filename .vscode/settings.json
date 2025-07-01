@@ -84,5 +84,5 @@
   },
   "C_Cpp.clang_format_fallbackStyle": "Google",
   "C_Cpp.clang_format_path": "",
-  "dart.flutterSdkPath": ".fvm/versions/3.24.1"
+  "dart.flutterSdkPath": ".fvm/versions/3.32.5"
 }

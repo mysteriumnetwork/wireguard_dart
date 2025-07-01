@@ -5,34 +5,17 @@ homepage: https://github.com/mysteriumnetwork/wireguard_dart
 repository: https://github.com/mysteriumnetwork/wireguard_dart
 
 environment:
-  sdk: "^3.0.0"
-  flutter: ">=3.7.0"
+  sdk: "^3.4.0"
+  flutter: ">=3.22.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  mockito: ^5.4.5
+  mockito: ^5.4.4
   plugin_platform_interface: ^2.1.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
-  build_runner: ^2.4.15
-
-flutter:
-  plugin:
-    platforms:
-      android:
-        package: network.mysterium.wireguard_dart
-        pluginClass: WireguardDartPlugin
-      ios:
-        pluginClass: WireguardDartPlugin
-        sharedDarwinSource: true
-      linux:
-        pluginClass: WireguardDartPlugin
-      macos:
-        pluginClass: WireguardDartPlugin
-        sharedDarwinSource: true
-      windows:
-        pluginClass: WireguardDartPluginCApi
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.11
