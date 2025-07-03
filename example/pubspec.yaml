@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  wg_dart:
+  wireguard_dart:
     # When depending on this package from a real application you should use:
     #   wg_dart: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints
