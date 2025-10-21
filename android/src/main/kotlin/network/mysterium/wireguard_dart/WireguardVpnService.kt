@@ -5,6 +5,7 @@ import android.os.IBinder
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.*
+import java.sql.Connection
 
 class WireguardWrapperService : GoBackend.VpnService() {
 
@@ -16,6 +17,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
     override fun onCreate() {
         super.onCreate()
         notificationHelper = NotificationHelper(this)
+        NotificationHelper.initNotificationChannel(this)
         WireguardBackend.instance.serviceCreated(this)
         Log.d(serviceTag, "Service created")
     }
@@ -23,17 +25,19 @@ class WireguardWrapperService : GoBackend.VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.instance
 
-        // Always show foreground notification immediately
+        // Show foreground notification immediately
         startForeground(
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
                 ConnectionStatus.connecting,
-                 TunnelStatistics(0, 0, 0),
-                backend.tunnelName?:"VPN Status"
+                TunnelStatistics(0, 0, 0),
+                "VPN"
             )
         )
 
-        // Update notification continuously
+        // Cancel previous job if any
+        updateJob?.cancel()
+
         updateJob?.cancel()
         var startedTunnel = false
 
@@ -52,7 +56,11 @@ class WireguardWrapperService : GoBackend.VpnService() {
                     stopSelf()
                     break
                 } else if (status != ConnectionStatus.disconnected) {
-                    notificationHelper.updateStatusNotification(status, stats, backend.tunnelName?:"Mysterium VPN")
+                    notificationHelper.updateStatusNotification(
+                        status,
+                        stats,
+                        backend.tunnelName ?: "Mysterium VPN"
+                    )
                 }
 
                 delay(1000)
@@ -60,8 +68,8 @@ class WireguardWrapperService : GoBackend.VpnService() {
         }
 
         return START_STICKY
-    }
 
+    }
 
     override fun onDestroy() {
         updateJob?.cancel()

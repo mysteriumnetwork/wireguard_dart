@@ -1,6 +1,8 @@
 package network.mysterium.wireguard_dart
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
@@ -40,7 +42,6 @@ class WireguardBackend private constructor(
     val runningTunnelNames: Set<String>
         get() = backend.runningTunnelNames
 
-
     companion object {
         @Volatile
         lateinit var instance: WireguardBackend
@@ -65,26 +66,33 @@ class WireguardBackend private constructor(
     }
 
     fun updateStatus(status: ConnectionStatus) {
-        Log.d(serviceTag, "Status updated: $status")
         _statusFlow.value = status
     }
 
-    suspend fun connectFromService(cfgString: String, tunnelName: String) {
+    suspend fun connectFromService(cfgString: String, tunnelName: String, context: Context) {
         Log.d(serviceTag, "connectFromService: Initializing tunnel '$tunnelName'")
         withContext(wireGuardDispatcher) {
             try {
                 val cfg = Config.parse(ByteArrayInputStream(cfgString.toByteArray()))
                 currentConfig = cfg
-                Log.d(serviceTag, "Config parsed successfully for tunnel '$tunnelName'")
 
-                currentTunnel = WireguardTunnel(tunnelName) { state ->
-                    val newStatus = when (state) {
-                        Tunnel.State.UP -> ConnectionStatus.connected
-                        Tunnel.State.DOWN -> ConnectionStatus.disconnected
-                        else -> ConnectionStatus.unknown
+                // Initialize tunnel if needed
+                if (currentTunnel?.getName() != tunnelName) {
+                    currentTunnel = WireguardTunnel(tunnelName) { state ->
+                        val newStatus = when (state) {
+                            Tunnel.State.UP -> ConnectionStatus.connected
+                            Tunnel.State.DOWN -> ConnectionStatus.disconnected
+                            else -> ConnectionStatus.unknown
+                        }
+                        if (newStatus == ConnectionStatus.connected) {
+                            startServiceIfNeeded(context)
+                        }
+                        Log.d(
+                            serviceTag,
+                            "Tunnel '$tunnelName' state changed: $state -> $newStatus"
+                        )
+                        updateStatus(newStatus)
                     }
-                    Log.d(serviceTag, "Tunnel '$tunnelName' state changed: $state -> $newStatus")
-                    updateStatus(newStatus)
                 }
 
                 backend.setState(currentTunnel!!, Tunnel.State.UP, cfg)
@@ -92,26 +100,29 @@ class WireguardBackend private constructor(
                 startMonitoringJob()
                 Log.d(serviceTag, "Tunnel '$tunnelName' setState completed")
             } catch (e: Exception) {
-                val detailedMessage = StringBuilder()
-                    .append("Exception type: ${e::class.simpleName}\n")
-                    .append("Message: ${e.message}\n")
-                    .append("StackTrace:\n${Log.getStackTraceString(e)}")
-                    .toString()
-
-                Log.e(
-                    serviceTag,
-                    "connectFromService failed for tunnel '$tunnelName': $detailedMessage"
-                )
+                val detailedMessage =
+                    "Exception: ${e::class.simpleName}\nMessage: ${e.message}\nStack:\n${
+                        Log.getStackTraceString(e)
+                    }"
+                Log.e(serviceTag, "connectFromService failed: $detailedMessage")
                 updateStatus(ConnectionStatus.disconnected)
                 _latestStats = null
-
-                throw WireguardConnectionException(
-                    tunnelName = tunnelName,
-                    originalException = e,
-                    details = detailedMessage
-                )
+                throw WireguardConnectionException(tunnelName, e, detailedMessage)
             }
         }
+    }
+
+    fun stopService(context: Context) {
+        serviceRef?.let {
+            try {
+                val intent = Intent(context, WireguardWrapperService::class.java)
+                context.stopService(intent)
+                Log.d(serviceTag, "WireguardWrapperService stopped")
+            } catch (e: Exception) {
+                Log.e(serviceTag, "Failed to stop WireguardWrapperService", e)
+            }
+            serviceRef = null
+        } ?: Log.d(serviceTag, "No service reference to stop")
     }
 
     private fun startMonitoringJob() {
@@ -124,56 +135,66 @@ class WireguardBackend private constructor(
         monitoringJob = mainScope.launch(wireGuardDispatcher) {
             Log.d(serviceTag, "Monitoring job started for tunnel '${tunnel.getName()}'")
             while (isActive) {
-                val state = try {
-                    backend.getState(tunnel)
-                } catch (e: Exception) {
-                    Log.e(serviceTag, "Failed to read tunnel state", e)
-                    Tunnel.State.DOWN
+
+                // Check if tunnel was removed externally
+                if (!backend.runningTunnelNames.contains(tunnel.getName())) {
+                    Log.w(serviceTag, "Tunnel '${tunnel.getName()}' removed externally")
+                    _latestStats = null
+                    updateStatus(ConnectionStatus.disconnected)
+                    break // Stop monitoring but do NOT stop service
                 }
 
-                val newStatus = when (state) {
-                    Tunnel.State.UP -> ConnectionStatus.connected
-                    Tunnel.State.DOWN -> ConnectionStatus.disconnected
-                    else -> ConnectionStatus.unknown
-                }
+                // Update latest stats only if connected
+                _latestStats =
+                    if (_statusFlow.value == ConnectionStatus.connected) getStatisticsSnapshot() else null
 
-                updateStatus(newStatus)
-
-                // Update latest statistics or null if disconnected
-                _latestStats = if (newStatus == ConnectionStatus.connected) {
-                    getStatisticsSnapshot()
-                } else null
-
-                delay(1000)
+                delay(1000) // <-- 2 seconds delay
             }
         }
     }
 
-    suspend fun closeVpnTunnel(withStateChange: Boolean) {
+    fun startServiceIfNeeded(context: Context) {
+        val intent = Intent(context, WireguardWrapperService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            Log.d(serviceTag, "WireguardWrapperService started")
+        } catch (e: Exception) {
+            Log.e(serviceTag, "Failed to start WireguardWrapperService", e)
+        }
+    }
+
+    suspend fun closeVpnTunnel(withStateChange: Boolean, context: Context) {
+        val tunnel = currentTunnel ?: run {
+            throw Exception("Tunnel is not initialized")
+        }
+        if (runningTunnelNames.isEmpty()) {
+            throw Exception("Tunnel is not running")
+        }
+        updateStatus(ConnectionStatus.disconnecting)
         monitoringJob?.cancel()
-        if (withStateChange) updateStatus(ConnectionStatus.disconnected)
+        monitoringJob = null
         _latestStats = null
+        stopService(context)
 
         withContext(wireGuardDispatcher) {
-            currentTunnel?.let {
+            tunnel.let {
                 backend.setState(it, Tunnel.State.DOWN, null)
             }
         }
+        updateStatus(ConnectionStatus.disconnected)
     }
 
     suspend fun getStatisticsSnapshot(): TunnelStatistics? {
         val tunnel = currentTunnel ?: return null
-
         return withContext(wireGuardDispatcher) {
             val stats = backend.getStatistics(tunnel)
-            var latestHandshake = 0L
-            for (peer in stats.peers()) {
-                stats.peer(peer)?.let {
-                    if (it.latestHandshakeEpochMillis > latestHandshake) {
-                        latestHandshake = it.latestHandshakeEpochMillis
-                    }
-                }
-            }
+            val latestHandshake =
+                stats.peers().mapNotNull { stats.peer(it)?.latestHandshakeEpochMillis }.maxOrNull()
+                    ?: 0L
             TunnelStatistics(stats.totalRx(), stats.totalTx(), latestHandshake)
         }
     }

@@ -204,22 +204,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         result.success(havePermission)
     }
 
-    private fun startWireguardService(intent: Intent) {
-        try {
-            val ctx = activity ?: context
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Log.d(TAG, "Starting foreground service on Android O+")
-                ctx.startForegroundService(intent)
-            } else {
-                Log.d(TAG, "Starting service on pre-O Android")
-                ctx.startService(intent)
-            }
-            Log.d(TAG, "Service start requested: $intent")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start WireguardWrapperService", e)
-        }
-    }
-
     private fun connect(cfg: String, result: MethodChannel.Result) {
         val tunnelName = tunnelName ?: run {
             flutterError(result, "Tunnel name is not set")
@@ -235,7 +219,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                     checkPermission()
                     throw Exception("Permissions are not given")
                 }
-                WireguardBackend.instance.connectFromService(cfg, tunnelName)
+                WireguardBackend.instance.connectFromService(cfg, tunnelName, context)
                 Log.d(TAG, "Tunnel '$tunnelName' successfully connected")
                 flutterSuccess(result, "")
             } catch (e: WireguardConnectionException) {
@@ -249,10 +233,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 )
             }
         }
-
-        // Start service for foreground notification
-        val intent = Intent(context, WireguardWrapperService::class.java)
-        startWireguardService(intent)
     }
 
 
@@ -266,12 +246,8 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         Log.d(TAG, "Preparing to disconnect tunnel '$tunnelName'")
 
         scope.launch(Dispatchers.IO) {
-            val backend = WireguardBackend.instance
             try {
-                if (backend.runningTunnelNames.isEmpty()) {
-                    throw Exception("Tunnel is not running")
-                }
-                backend.closeVpnTunnel(withStateChange = true)
+                WireguardBackend.instance.closeVpnTunnel(withStateChange = true, context)
                 Log.d(TAG, "Tunnel '$tunnelName' successfully disconnected")
                 flutterSuccess(result, "")
             } catch (e: Exception) {
