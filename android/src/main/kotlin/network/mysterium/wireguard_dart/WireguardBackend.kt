@@ -37,6 +37,10 @@ class WireguardBackend private constructor(
     val tunnelName: String?
         get() = currentTunnel?.getName()
 
+    val runningTunnelNames: Set<String>
+        get() = backend.runningTunnelNames
+
+
     companion object {
         @Volatile
         lateinit var instance: WireguardBackend
@@ -67,7 +71,6 @@ class WireguardBackend private constructor(
 
     suspend fun connectFromService(cfgString: String, tunnelName: String) {
         Log.d(serviceTag, "connectFromService: Initializing tunnel '$tunnelName'")
-
         withContext(wireGuardDispatcher) {
             try {
                 val cfg = Config.parse(ByteArrayInputStream(cfgString.toByteArray()))

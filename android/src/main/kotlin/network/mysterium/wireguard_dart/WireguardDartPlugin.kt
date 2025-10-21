@@ -236,6 +236,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
 
         scope.launch(Dispatchers.IO) {
             try {
+                if (!havePermission) {
+                    checkPermission()
+                    throw Exception("Permissions are not given")
+                }
                 WireguardBackend.instance.connectFromService(cfg, tunnelName)
                 Log.d(TAG, "Tunnel '$tunnelName' successfully connected")
                 flutterSuccess(result, "")
@@ -267,8 +271,12 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         Log.d(TAG, "Preparing to disconnect tunnel '$tunnelName'")
 
         scope.launch(Dispatchers.IO) {
+            val backend = WireguardBackend.instance
             try {
-                WireguardBackend.instance.closeVpnTunnel(withStateChange = true)
+                if (backend.runningTunnelNames.isEmpty()) {
+                    throw Exception("Tunnel is not running")
+                }
+                backend.closeVpnTunnel(withStateChange = true)
                 Log.d(TAG, "Tunnel '$tunnelName' successfully disconnected")
                 flutterSuccess(result, "")
             } catch (e: Exception) {
