@@ -318,7 +318,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     private fun requestNotificationPermission(result: MethodChannel.Result) {
         val callback = object : NotificationPermissionCallback {
             override fun onResult(permissionStatus: NotificationPermission) {
-                result.success(permissionStatus.ordinal)
+                result.success(permissionStatus.name)
             }
 
             override fun onError(exception: Exception) {
@@ -330,7 +330,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
 
     private fun checkNotificationPermission(result: MethodChannel.Result) {
         val status = notificationPermissionManager.checkPermission(checkActivity())
-        result.success(status.ordinal)
+        result.success(status.name)
     }
 
     private fun checkActivity(): Activity {

@@ -1,12 +1,9 @@
 package network.mysterium.wireguard_dart
 
-
-import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.PluginRegistry
@@ -14,6 +11,7 @@ import io.flutter.plugin.common.PluginRegistry
 const val REQUEST_NOTIFICATION_PERMISSION = 100
 const val NOTIFICATION_PERMISSION_STATUS_PREFS =
     "network.mysterium.wireguard_dart.prefs.NOTIFICATION_PERMISSION_STATUS"
+private const val POST_NOTIFICATIONS_PERMISSION = "android.permission.POST_NOTIFICATIONS"
 
 class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultListener {
     private var activity: Activity? = null
@@ -24,18 +22,18 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
             return NotificationPermission.GRANTED
         }
 
-        val permission = Manifest.permission.POST_NOTIFICATIONS
+        val permission = POST_NOTIFICATIONS_PERMISSION
         if (activity.isPermissionGranted(permission)) {
             return NotificationPermission.GRANTED
-        } else {
-            val prevPermissionStatus = activity.getPrevPermissionStatus(permission)
-            if (prevPermissionStatus != null
-                && prevPermissionStatus == NotificationPermission.PERMANENTLY_DENIED
-                && !activity.shouldShowRequestPermissionRationale(permission)
-            ) {
-                return NotificationPermission.PERMANENTLY_DENIED
-            }
-            return NotificationPermission.DENIED
+        }
+
+        val prevPermissionStatus = activity.getPrevPermissionStatus(permission)
+        return when {
+            prevPermissionStatus == NotificationPermission.PERMANENTLY_DENIED &&
+                    !activity.shouldShowRequestPermissionRationale(permission) ->
+                NotificationPermission.PERMANENTLY_DENIED
+
+            else -> NotificationPermission.DENIED
         }
     }
 
@@ -45,8 +43,9 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
             return
         }
 
-        // Already granted
-        if (activity.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS)) {
+        val permission = POST_NOTIFICATIONS_PERMISSION
+
+        if (activity.isPermissionGranted(permission)) {
             callback.onResult(NotificationPermission.GRANTED)
             return
         }
@@ -54,20 +53,16 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
         this.activity = activity
         this.callback = callback
 
-        // Only call system request — don’t short-circuit based on shouldShowRequestPermissionRationale()
         ActivityCompat.requestPermissions(
             activity,
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            arrayOf(permission),
             REQUEST_NOTIFICATION_PERMISSION
         )
     }
 
-
     private fun Context.isPermissionGranted(permission: String): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            permission
-        ) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(this, permission) ==
+                PackageManager.PERMISSION_GRANTED
     }
 
     private fun Context.setPrevPermissionStatus(
@@ -76,17 +71,14 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
     ) {
         val prefs = getSharedPreferences(
             NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE
-        ) ?: return
-        with(prefs.edit()) {
-            putString(permission, status.toString())
-            commit()
-        }
+        )
+        prefs.edit().putString(permission, status.toString()).apply()
     }
 
     private fun Context.getPrevPermissionStatus(permission: String): NotificationPermission? {
         val prefs = getSharedPreferences(
             NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE
-        ) ?: return null
+        )
         val value = prefs.getString(permission, null) ?: return null
         return NotificationPermission.valueOf(value)
     }
@@ -103,33 +95,28 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
     ): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             callback?.onResult(NotificationPermission.GRANTED)
-            return true;
+            return true
         }
+
         if (grantResults.isEmpty()) {
             callback?.onError(PermissionRequestCancelledException())
             disposeReference()
             return false
         }
 
-        val permission: String
-        val permissionIndex: Int
+        val permission = POST_NOTIFICATIONS_PERMISSION
+        val permissionIndex = permissions.indexOf(permission)
         var permissionStatus = NotificationPermission.DENIED
 
-        when (requestCode) {
-            REQUEST_NOTIFICATION_PERMISSION -> {
-                permission = Manifest.permission.POST_NOTIFICATIONS
-                permissionIndex = permissions.indexOf(permission)
-
-                if (permissionIndex >= 0 &&
-                    grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED
-                ) {
-                    permissionStatus = NotificationPermission.GRANTED
-                } else if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
-                    permissionStatus = NotificationPermission.PERMANENTLY_DENIED
-                }
+        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
+            if (permissionIndex >= 0 &&
+                grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionStatus = NotificationPermission.GRANTED
+            } else if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
+                permissionStatus = NotificationPermission.PERMANENTLY_DENIED
             }
-            else -> return false
-        }
+        } else return false
 
         activity?.setPrevPermissionStatus(permission, permissionStatus)
         callback?.onResult(permissionStatus)

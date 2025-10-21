@@ -9,11 +9,11 @@ enum NotificationPermission {
   /// Notification permission has been permanently denied.
   permanentlyDenied;
 
-  static NotificationPermission fromIndex(int? index) {
-    final int safeIndex = index ?? NotificationPermission.denied.index;
-    if (safeIndex < 0 || safeIndex >= NotificationPermission.values.length) {
-      return NotificationPermission.denied;
-    }
-    return NotificationPermission.values[safeIndex];
-  }
+  /// Converts a string (from Android native side) into a [NotificationPermission].
+  static NotificationPermission fromString(String? value) => switch (value?.toUpperCase()) {
+        'GRANTED' => NotificationPermission.granted,
+        'PERMANENTLY_DENIED' => NotificationPermission.permanentlyDenied,
+        'DENIED' || null => NotificationPermission.denied,
+        _ => NotificationPermission.denied,
+      };
 }
