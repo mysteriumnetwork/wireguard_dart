@@ -205,21 +205,7 @@ class _MyAppState extends State<MyApp> {
   void connect() async {
     try {
       // replace with valid config file before running
-      await _wireguardDartPlugin.connect(cfg: """[Interface]
-PrivateKey = gK43LvwIhGnml7BZ+5jrreUBN789S9/mD7yDZE7iWHM=
-Address = 10.181.245.228
-Address = fe80::1234:5678:90ab:cdef/128
-DNS = 1.1.1.1
-
-[Peer]
-PublicKey = dM+CJDULnnAgh0HxltCkKn8B9iHAmobQdPao89LnHX4=
-AllowedIPs = 16.0.0.0/4, 8.0.0.0/5
-AllowedIPs = 4.0.0.0/6, 2.0.0.0/7
-AllowedIPs = 1.0.0.0/8, 0.128.0.0/9
-Endpoint = 94.130.56.37:56666
-PersistentKeepalive = 25
-
-""");
+      await _wireguardDartPlugin.connect(cfg: """""");
       debugPrint("Connect success");
       showSnackbar(
         "Connect success",
