@@ -96,12 +96,15 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
         this.callback = null
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray
     ): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            callback?.onResult(NotificationPermission.GRANTED)
+            return true;
+        }
         if (grantResults.isEmpty()) {
             callback?.onError(PermissionRequestCancelledException())
             disposeReference()
@@ -111,21 +114,20 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
         val permission: String
         val permissionIndex: Int
         var permissionStatus = NotificationPermission.DENIED
+
         when (requestCode) {
             REQUEST_NOTIFICATION_PERMISSION -> {
                 permission = Manifest.permission.POST_NOTIFICATIONS
                 permissionIndex = permissions.indexOf(permission)
-                if (permissionIndex >= 0
-                    && grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED
+
+                if (permissionIndex >= 0 &&
+                    grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED
                 ) {
                     permissionStatus = NotificationPermission.GRANTED
-                } else {
-                    if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
-                        permissionStatus = NotificationPermission.PERMANENTLY_DENIED
-                    }
+                } else if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
+                    permissionStatus = NotificationPermission.PERMANENTLY_DENIED
                 }
             }
-
             else -> return false
         }
 
