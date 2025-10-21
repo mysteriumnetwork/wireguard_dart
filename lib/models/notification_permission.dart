@@ -9,6 +9,11 @@ enum NotificationPermission {
   /// Notification permission has been permanently denied.
   permanentlyDenied;
 
-  static NotificationPermission fromIndex(int? index) =>
-      NotificationPermission.values[index ?? NotificationPermission.denied.index];
+  static NotificationPermission fromIndex(int? index) {
+    final int safeIndex = index ?? NotificationPermission.denied.index;
+    if (safeIndex < 0 || safeIndex >= NotificationPermission.values.length) {
+      return NotificationPermission.denied;
+    }
+    return NotificationPermission.values[safeIndex];
+  }
 }
