@@ -22,26 +22,39 @@ class WireguardWrapperService : GoBackend.VpnService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.instance
-        val notificationTitle = backend.tunnelName ?: "VPN"
 
         // Always show foreground notification immediately
         startForeground(
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
-                backend.statusFlow.value,
-                backend.latestStats ?: TunnelStatistics(0, 0, 0),
-                notificationTitle
+                ConnectionStatus.connecting,
+                 TunnelStatistics(0, 0, 0),
+                backend.tunnelName?:"VPN Status"
             )
         )
 
         // Update notification continuously
         updateJob?.cancel()
+        var startedTunnel = false
+
         updateJob = scope.launch {
             while (isActive) {
                 val status = backend.statusFlow.value
                 val stats = backend.latestStats
-                if (status == ConnectionStatus.disconnected) stopForeground(STOP_FOREGROUND_REMOVE)
-                else notificationHelper.updateStatusNotification(status, stats, notificationTitle)
+
+                if (status == ConnectionStatus.connected) {
+                    startedTunnel = true
+                }
+
+                if (startedTunnel && status == ConnectionStatus.disconnected) {
+                    Log.d(serviceTag, "Tunnel disconnected, stopping service")
+                    stopForeground(true)
+                    stopSelf()
+                    break
+                } else if (status != ConnectionStatus.disconnected) {
+                    notificationHelper.updateStatusNotification(status, stats, backend.tunnelName?:"Mysterium VPN")
+                }
+
                 delay(1000)
             }
         }

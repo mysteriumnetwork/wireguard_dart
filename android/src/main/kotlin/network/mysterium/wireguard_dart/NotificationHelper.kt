@@ -60,7 +60,7 @@ class NotificationHelper(private val context: Context) {
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(notificationTitle)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_notification_overlay)
+            .setSmallIcon(R.drawable.baseline_vpn_key_24)
             .setContentIntent(pending)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

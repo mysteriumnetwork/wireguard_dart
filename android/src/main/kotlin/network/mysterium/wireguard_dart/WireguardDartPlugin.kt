@@ -42,7 +42,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     private var tunnelName: String? = null
     private var permissionsResultCallback: MethodChannel.Result? = null
 
-    private lateinit var notificationHelper: NotificationHelper
     private var activityBinding: ActivityPluginBinding? = null
 
     private var status: ConnectionStatus = ConnectionStatus.disconnected
@@ -76,10 +75,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 status = s
             }
         }
-
-        // Initialize Notification channel for Android O+
-        NotificationHelper.initNotificationChannel(context)
-        notificationHelper = NotificationHelper(context)
 
         // Launch backend creation
         scope.launch(Dispatchers.IO) {
