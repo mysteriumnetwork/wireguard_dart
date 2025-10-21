@@ -2,9 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:wireguard_dart/connection_status.dart';
-import 'package:wireguard_dart/key_pair.dart';
-import 'package:wireguard_dart/tunnel_statistics.dart';
+import 'package:wireguard_dart/models/models.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 
@@ -90,6 +88,22 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
       final result = await methodChannel.invokeMethod('tunnelStatistics');
       final stats = TunnelStatistics.fromJson(jsonDecode(result));
       return stats;
+    } catch (e) {
+      throw Exception(e);
+    }
+  }
+
+  @override
+  Future<NotificationPermission> checkNotificationPermission() async {
+    final int result = await methodChannel.invokeMethod('checkNotificationPermission');
+    return NotificationPermission.fromIndex(result);
+  }
+
+  @override
+  Future<NotificationPermission> requestNotificationPermission() async {
+    try {
+      final int result = await methodChannel.invokeMethod('requestNotificationPermission');
+      return NotificationPermission.fromIndex(result);
     } catch (e) {
       throw Exception(e);
     }

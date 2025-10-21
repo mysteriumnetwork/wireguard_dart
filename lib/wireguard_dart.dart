@@ -1,7 +1,4 @@
-import 'package:wireguard_dart/key_pair.dart';
-import 'package:wireguard_dart/tunnel_statistics.dart';
-
-import 'connection_status.dart';
+import 'models/models.dart';
 import 'wireguard_dart_platform_interface.dart';
 
 class WireguardDart {
@@ -52,4 +49,27 @@ class WireguardDart {
   Future<TunnelStatistics?> getTunnelStatistics() {
     return WireguardDartPlatform.instance.getTunnelStatistics();
   }
+
+  Future<NotificationPermission> checkNotificationPermission() {
+    return WireguardDartPlatform.instance.checkNotificationPermission();
+  }
+
+  Future<NotificationPermission> requestNotificationPermission() {
+    return WireguardDartPlatform.instance.requestNotificationPermission();
+  }
 }
+
+//  "requestNotificationPermission" -> {
+//                     checkActivityNull().let {
+//                         val callback = object : NotificationPermissionCallback {
+//                             override fun onResult(permissionStatus: NotificationPermission) {
+//                                 result.success(permissionStatus.ordinal)
+//                             }
+
+//                             override fun onError(exception: Exception) {
+//                                 ErrorHandleUtils.handleMethodCallError(result, exception)
+//                             }
+//                         }
+//                         provider.getNotificationPermissionManager().requestPermission(it, callback)
+//                     }
+//                 }

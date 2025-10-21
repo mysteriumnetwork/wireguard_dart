@@ -5,9 +5,7 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wireguard_dart/connection_status.dart';
-import 'package:wireguard_dart/key_pair.dart';
-import 'package:wireguard_dart/tunnel_statistics.dart';
+import 'package:wireguard_dart/models/models.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 import 'package:wireguard_dart_example/snackbar.dart';
 
@@ -81,6 +79,46 @@ class _MyAppState extends State<MyApp> {
       _platformVersion = platformVersion;
       debugPrint(_platformVersion);
     });
+  }
+
+  Future<void> checkNotificationPermission() async {
+    try {
+      var permission = await _wireguardDartPlugin.checkNotificationPermission();
+      debugPrint("Notification permission status: $permission");
+      showSnackbar(
+        "Notification permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Check notification permission',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to check notification permission: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Future<void> requestNotificationPermission() async {
+    try {
+      var permission = await _wireguardDartPlugin.requestNotificationPermission();
+      debugPrint("Notification permission status: $permission");
+      showSnackbar(
+        "Notification permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Request notification permission',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to request notification permission: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
   }
 
   void generateKey() async {
@@ -167,7 +205,21 @@ class _MyAppState extends State<MyApp> {
   void connect() async {
     try {
       // replace with valid config file before running
-      await _wireguardDartPlugin.connect(cfg: """""");
+      await _wireguardDartPlugin.connect(cfg: """[Interface]
+PrivateKey = gK43LvwIhGnml7BZ+5jrreUBN789S9/mD7yDZE7iWHM=
+Address = 10.181.245.228
+Address = fe80::1234:5678:90ab:cdef/128
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = dM+CJDULnnAgh0HxltCkKn8B9iHAmobQdPao89LnHX4=
+AllowedIPs = 16.0.0.0/4, 8.0.0.0/5
+AllowedIPs = 4.0.0.0/6, 2.0.0.0/7
+AllowedIPs = 1.0.0.0/8, 0.128.0.0/9
+Endpoint = 94.130.56.37:56666
+PersistentKeepalive = 25
+
+""");
       debugPrint("Connect success");
       showSnackbar(
         "Connect success",
@@ -298,6 +350,37 @@ class _MyAppState extends State<MyApp> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
+                    Text('Running on: $_platformVersion\n'),
+                    Text('Notification Permission:'),
+                    TextButton(
+                      onPressed: checkNotificationPermission,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Check Notification Permission',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: requestNotificationPermission,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Request Notification Permission',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    Divider(),
                     TextButton(
                       onPressed: generateKey,
                       style: ButtonStyle(

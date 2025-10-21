@@ -1,13 +1,12 @@
 package network.mysterium.wireguard_dart
 
-
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import com.beust.klaxon.Klaxon
 import com.wireguard.android.backend.Backend
-import com.wireguard.android.backend.BackendException
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wireguard.crypto.KeyPair
@@ -19,34 +18,33 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.io.ByteArrayInputStream
 
 const val PERMISSIONS_REQUEST_CODE = 10014
 
-class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
+class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware,
     PluginRegistry.ActivityResultListener {
 
     private lateinit var channel: MethodChannel
     private lateinit var statusChannel: EventChannel
     private lateinit var statusBroadcaster: ConnectionStatusBroadcaster
-    private val futureBackend = CompletableDeferred<Backend>()
+
     private val scope = CoroutineScope(Job() + Dispatchers.Main.immediate)
     private var backend: Backend? = null
     private var havePermission = false
     private lateinit var context: Context
     private var activity: Activity? = null
-    private var config: com.wireguard.config.Config? = null
     private var tunnel: WireguardTunnel? = null
     private var tunnelName: String? = null
-    private var permissionsResultCallback: Result? = null
+    private var permissionsResultCallback: MethodChannel.Result? = null
+
+    private lateinit var notificationHelper: NotificationHelper
+    private var activityBinding: ActivityPluginBinding? = null
+
     private var status: ConnectionStatus = ConnectionStatus.disconnected
         set(value) {
             field = value
@@ -55,127 +53,115 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             }
         }
 
+    private lateinit var notificationPermissionManager: NotificationPermissionManager
+
     companion object {
-        const val TAG = "MainActivity"
+        private const val TAG = "WireguardDartPlugin"
+    }
+
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        notificationPermissionManager = NotificationPermissionManager()
+        channel = MethodChannel(binding.binaryMessenger, "wireguard_dart")
+        statusChannel = EventChannel(binding.binaryMessenger, "wireguard_dart/status")
+        statusBroadcaster = ConnectionStatusBroadcaster()
+        statusChannel.setStreamHandler(statusBroadcaster)
+        context = binding.applicationContext
+
+        // Initialize WireguardBackend singleton before usage
+        WireguardBackend.init(context, scope)
+
+        // Subscribe plugin status Channel to backend statusFlow (single collector)
+        scope.launch {
+            WireguardBackend.instance.statusFlow.collect { s ->
+                status = s
+            }
+        }
+
+        // Initialize Notification channel for Android O+
+        NotificationHelper.initNotificationChannel(context)
+        notificationHelper = NotificationHelper(context)
+
+        // Launch backend creation
+        scope.launch(Dispatchers.IO) {
+            try {
+                backend = GoBackend(context)
+            } catch (e: Throwable) {
+                Log.e(TAG, "createBackend error", e)
+            }
+        }
+
+        channel.setMethodCallHandler(this)
+    }
+
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        channel.setMethodCallHandler(null)
+    }
+
+    // Activity aware handling - permissions
+    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
+        this.activity = when (activityPluginBinding.activity) {
+            is FlutterFragmentActivity -> activityPluginBinding.activity as FlutterFragmentActivity
+            is FlutterActivity -> activityPluginBinding.activity as FlutterActivity
+            else -> null
+        }
+        activityPluginBinding.addRequestPermissionsResultListener(notificationPermissionManager)
+        activityPluginBinding.addActivityResultListener(this)
+        activityBinding = activityPluginBinding
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        activityBinding?.removeRequestPermissionsResultListener(notificationPermissionManager)
+        activity = null
+    }
+
+    override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
+        activity = activityPluginBinding.activity
+    }
+
+    override fun onDetachedFromActivity() {
+        activity = null
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             havePermission = resultCode == Activity.RESULT_OK
-            if (havePermission) {
-                permissionsResultCallback?.success(null)
-            } else {
-                permissionsResultCallback?.error(
-                    "err_setup_tunnel",
-                    "Permissions are not given",
-                    null
-                )
-
-            }
+            if (havePermission) permissionsResultCallback?.success(null)
+            else permissionsResultCallback?.error("err_setup_tunnel", "Permissions are not given", null)
         }
         return havePermission
     }
 
-    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-        if (activityPluginBinding.activity is FlutterFragmentActivity) {
-            this.activity = activityPluginBinding.activity as FlutterFragmentActivity
-        } else if (activityPluginBinding.activity is FlutterActivity) {
-            this.activity = activityPluginBinding.activity as FlutterActivity
-        }
-        activityPluginBinding.addActivityResultListener(this)
+    // --- Utilities ---
+    private fun flutterSuccess(result: MethodChannel.Result, o: Any?) {
+        scope.launch(Dispatchers.Main) { result.success(o) }
     }
 
-    override fun onDetachedFromActivityForConfigChanges() {
-        this.activity = null
+    private fun flutterError(result: MethodChannel.Result, error: String) {
+        scope.launch(Dispatchers.Main) { result.error(error, null, null) }
     }
 
-    override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
-        if (activityPluginBinding.activity is FlutterFragmentActivity) {
-            this.activity = activityPluginBinding.activity as FlutterFragmentActivity
-        } else if (activityPluginBinding.activity is FlutterActivity) {
-            this.activity = activityPluginBinding.activity as FlutterActivity
-        }
-        this.activity = activityPluginBinding.activity as FlutterActivity
+    private fun flutterNotImplemented(result: MethodChannel.Result) {
+        scope.launch(Dispatchers.Main) { result.notImplemented() }
     }
 
-    override fun onDetachedFromActivity() {
-        this.activity = null
-    }
-
-    override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart")
-        statusChannel = EventChannel(flutterPluginBinding.binaryMessenger, "wireguard_dart/status")
-        statusBroadcaster = ConnectionStatusBroadcaster()
-        statusChannel.setStreamHandler(statusBroadcaster)
-        context = flutterPluginBinding.applicationContext
-
-        scope.launch(Dispatchers.IO) {
-            try {
-                backend = createBackend()
-                futureBackend.complete(backend!!)
-            } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
-            }
-        }
-        channel.setMethodCallHandler(this)
-    }
-
-    private fun createBackend(): Backend {
-        if (backend == null) {
-            backend = GoBackend(context)
-        }
-        return backend as Backend
-    }
-
-    private fun flutterSuccess(result: Result, o: Any) {
-        scope.launch(Dispatchers.Main) {
-            result.success(o)
-        }
-    }
-
-    private fun flutterError(result: Result, error: String) {
-        scope.launch(Dispatchers.Main) {
-            result.error(error, null, null)
-        }
-    }
-
-    private fun flutterNotImplemented(result: Result) {
-        scope.launch(Dispatchers.Main) {
-            result.notImplemented()
-        }
-    }
-
-    override fun onMethodCall(call: MethodCall, result: Result) {
+    // === Dart exposed methods ===
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "nativeInit" -> result.success("")
             "generateKeyPair" -> generateKeyPair(result)
-            "setupTunnel" -> setupTunnel(
-                call.argument<String>("tunnelName").toString(),
-                result
-            )
-
-            "checkTunnelConfiguration" -> {
-                checkTunnelConfiguration(call.argument<String>("tunnelName").toString(), result)
-            }
-
+            "setupTunnel" -> setupTunnel(call.argument<String>("tunnelName").toString(), result)
+            "checkTunnelConfiguration" -> checkTunnelConfiguration(call.argument<String>("tunnelName").toString(), result)
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
             "tunnelStatistics" -> statistics(result)
+            "checkNotificationPermission" -> checkNotificationPermission(result)
+            "requestNotificationPermission" -> requestNotificationPermission(result)
             else -> flutterNotImplemented(result)
         }
     }
 
-    private fun checkTunnelConfiguration(tunnelName: String, result: Result) {
-        val intent = GoBackend.VpnService.prepare(this.activity)
-        havePermission = intent == null
-        if (havePermission) {
-            initTunnel(tunnelName)
-        }
-        return result.success(havePermission)
-    }
-
-    private fun generateKeyPair(result: Result) {
+    private fun generateKeyPair(result: MethodChannel.Result) {
         val keyPair = KeyPair()
         result.success(
             hashMapOf(
@@ -185,7 +171,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         )
     }
 
-    private fun setupTunnel(tunnelName: String, result: Result) {
+    private fun setupTunnel(tunnelName: String, result: MethodChannel.Result) {
         scope.launch(Dispatchers.IO) {
             if (Tunnel.isNameInvalid(tunnelName)) {
                 flutterError(result, "Tunnel name is invalid")
@@ -194,6 +180,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             permissionsResultCallback = result
             checkPermission()
             initTunnel(tunnelName)
+            flutterSuccess(result, true)
         }
     }
 
@@ -202,139 +189,130 @@ class WireguardDartPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         tunnel = WireguardTunnel(tunnelName) { state ->
             status = ConnectionStatus.fromTunnelState(state)
         }
-        status = ConnectionStatus.fromTunnelState(backend?.getState(tunnel!!))
+        status = WireguardBackend.instance.statusFlow.value
     }
 
+    private fun checkTunnelConfiguration(tunnelName: String, result: MethodChannel.Result) {
+        val intent = GoBackend.VpnService.prepare(activity)
+        havePermission = intent == null
+        if (havePermission) initTunnel(tunnelName)
+        result.success(havePermission)
+    }
 
-    private fun connect(cfg: String, result: Result) {
-        val tun = tunnel ?: run {
-            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
+    private fun startWireguardService(intent: Intent) {
+        try {
+            val ctx = activity ?: context
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.d(TAG, "Starting foreground service on Android O+")
+                ctx.startForegroundService(intent)
+            } else {
+                Log.d(TAG, "Starting service on pre-O Android")
+                ctx.startService(intent)
+            }
+            Log.d(TAG, "Service start requested: $intent")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start WireguardWrapperService", e)
+        }
+    }
+
+    private fun connect(cfg: String, result: MethodChannel.Result) {
+        val tunnelName = tunnelName ?: run {
+            flutterError(result, "Tunnel name is not set")
             return
         }
+
         status = ConnectionStatus.connecting
+        Log.d(TAG, "Preparing to start WireguardWrapperService for tunnel '$tunnelName'")
+
         scope.launch(Dispatchers.IO) {
             try {
-                if (!havePermission) {
-                    checkPermission()
-                    throw Exception("Permissions are not given")
-                }
-                val inputStream = ByteArrayInputStream(cfg.toByteArray())
-                config = com.wireguard.config.Config.parse(inputStream)
-                futureBackend.await().setState(tun, Tunnel.State.UP, config)
+                WireguardBackend.instance.connectFromService(cfg, tunnelName)
+                Log.d(TAG, "Tunnel '$tunnelName' successfully connected")
                 flutterSuccess(result, "")
-            } catch (e: Throwable) {
-                Log.e(TAG, "Connect - Can't connect to tunnel: $e", e)
-                status = queryStatus()
-                flutterError(result, e.message.toString())
+            } catch (e: WireguardConnectionException) {
+                Log.e(TAG, "connectFromService failed: ${e.details}")
+                flutterError(result, e.details)
+            } catch (e: Exception) {
+                Log.e(TAG, "connectFromService failed", e)
+                flutterError(result, "Connection failed: ${e.message}\n${Log.getStackTraceString(e)}")
             }
         }
+
+        // Start service for foreground notification
+        val intent = Intent(context, WireguardWrapperService::class.java)
+        startWireguardService(intent)
     }
 
-    private fun disconnect(result: Result) {
-        val tun = tunnel ?: run {
-            result.error("err_setup_tunnel", "Tunnel is not initialized", null)
+
+    private fun disconnect(result: MethodChannel.Result) {
+        val tunnelName = tunnelName ?: run {
+            flutterError(result, "Tunnel name is not set")
             return
         }
+
         status = ConnectionStatus.disconnecting
+        Log.d(TAG, "Preparing to disconnect tunnel '$tunnelName'")
+
         scope.launch(Dispatchers.IO) {
             try {
-                if (futureBackend.await().runningTunnelNames.isEmpty()) {
-                    throw Exception("Tunnel is not running")
-                }
-                futureBackend.await().setState(tun, Tunnel.State.DOWN, config)
+                WireguardBackend.instance.closeVpnTunnel(withStateChange = true)
+                Log.d(TAG, "Tunnel '$tunnelName' successfully disconnected")
                 flutterSuccess(result, "")
-            } catch (e: Throwable) {
-                Log.e(TAG, "Disconnect - Can't disconnect from tunnel: ${e.message}")
-                status = queryStatus()
-                flutterError(result, e.message.toString())
+            } catch (e: Exception) {
+                Log.e(TAG, "closeVpnTunnel failed", e)
+                flutterError(result, e.message ?: "Disconnect failed")
             }
         }
+
+        // **Do not start the service on disconnect** — notification will be removed by service
+        Log.d(TAG, "Disconnect requested, service will update notification automatically")
     }
 
 
-    private fun statistics(result: Result) {
-        val tunnel =
-            tunnel ?: return result.error("err_setup_tunnel", "Tunnel is not initialized", null)
+    private fun statistics(result: MethodChannel.Result) {
         scope.launch(Dispatchers.IO) {
             try {
-                val statistics = futureBackend.await().getStatistics(tunnel)
-                var latestHandshake = 0L
-
-                for (key in statistics.peers()) {
-                    val peerStats = statistics.peer(key)
-                    if (peerStats !== null && peerStats.latestHandshakeEpochMillis > latestHandshake) {
-                        latestHandshake = peerStats.latestHandshakeEpochMillis
-                    }
-                }
-                val stats =
-                    TunnelStatistics(statistics.totalRx(), statistics.totalTx(), latestHandshake)
-
+                val stats = WireguardBackend.instance.getStatisticsSnapshot()
                 flutterSuccess(result, Klaxon().toJsonString(stats))
-                Log.i(
-                    TAG,
-                    "Statistics - ${stats.totalDownload} ${stats.totalUpload} ${stats.latestHandshake}"
-                )
-
-            } catch (e: BackendException) {
-                Log.e(TAG, "Statistics - BackendException - ERROR - ${e.reason} ", e)
-                flutterError(result, e.reason.toString())
             } catch (e: Throwable) {
-                Log.e(TAG, "Statistics - Can't get stats: ${e.message}", e)
-                flutterError(result, e.message.toString())
+                flutterError(result, e.message ?: "Unknown error")
             }
         }
     }
 
     private fun checkPermission() {
-        val intent = GoBackend.VpnService.prepare(this.activity)
+        val intent = GoBackend.VpnService.prepare(activity)
         if (intent != null) {
             havePermission = false
-            this.activity?.startActivityForResult(intent, PERMISSIONS_REQUEST_CODE)
+            activity?.startActivityForResult(intent, PERMISSIONS_REQUEST_CODE)
         } else {
             havePermission = true
         }
     }
 
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
+    private fun status(result: MethodChannel.Result) {
+        result.success(WireguardBackend.instance.statusFlow.value.name)
     }
 
-    private fun status(result: Result) {
-        val status = queryStatus()
-        result.success(status.name)
+    private fun requestNotificationPermission(result: MethodChannel.Result) {
+        val callback = object : NotificationPermissionCallback {
+            override fun onResult(permissionStatus: NotificationPermission) {
+                result.success(permissionStatus.ordinal)
+            }
+
+            override fun onError(exception: Exception) {
+                flutterError(result, exception.message.toString())
+            }
+        }
+        notificationPermissionManager.requestPermission(checkActivity(), callback)
     }
 
-    private fun queryStatus(): ConnectionStatus {
-        if (tunnel == null) {
-            return ConnectionStatus.unknown
-        }
-        return when (backend?.getState(tunnel!!)) {
-            Tunnel.State.DOWN -> ConnectionStatus.disconnected
-            Tunnel.State.UP -> ConnectionStatus.connected
-            else -> ConnectionStatus.unknown
-        }
+    private fun checkNotificationPermission(result: MethodChannel.Result) {
+        val status = notificationPermissionManager.checkPermission(checkActivity())
+        result.success(status.ordinal)
+    }
+
+    private fun checkActivity(): Activity {
+        return activity ?: throw ActivityNotAttachedException()
     }
 }
-
-typealias StateChangeCallback = (Tunnel.State) -> Unit
-
-class WireguardTunnel(
-    private val name: String,
-    private val onStateChanged: StateChangeCallback? = null
-) : Tunnel {
-
-    override fun getName() = name
-
-    override fun onStateChange(newState: Tunnel.State) {
-        onStateChanged?.invoke(newState)
-    }
-
-}
-
-class TunnelStatistics(
-    val totalDownload: Long,
-    val totalUpload: Long,
-    val latestHandshake: Long,
-)
-
-
