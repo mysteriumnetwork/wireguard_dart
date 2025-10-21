@@ -12,7 +12,8 @@ import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.PluginRegistry
 
 const val REQUEST_NOTIFICATION_PERMISSION = 100
-const val NOTIFICATION_PERMISSION_STATUS_PREFS = "network.mysterium.wireguard_dart.prefs.NOTIFICATION_PERMISSION_STATUS"
+const val NOTIFICATION_PERMISSION_STATUS_PREFS =
+    "network.mysterium.wireguard_dart.prefs.NOTIFICATION_PERMISSION_STATUS"
 
 class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultListener {
     private var activity: Activity? = null
@@ -30,7 +31,8 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
             val prevPermissionStatus = activity.getPrevPermissionStatus(permission)
             if (prevPermissionStatus != null
                 && prevPermissionStatus == NotificationPermission.PERMANENTLY_DENIED
-                && !activity.shouldShowRequestPermissionRationale(permission)) {
+                && !activity.shouldShowRequestPermissionRationale(permission)
+            ) {
                 return NotificationPermission.PERMANENTLY_DENIED
             }
             return NotificationPermission.DENIED
@@ -62,13 +64,20 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
 
 
     private fun Context.isPermissionGranted(permission: String): Boolean {
-        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(
+            this,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun Context.setPrevPermissionStatus(permission: String, status: NotificationPermission) {
+    private fun Context.setPrevPermissionStatus(
+        permission: String,
+        status: NotificationPermission
+    ) {
         val prefs = getSharedPreferences(
-            NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE) ?: return
-        with (prefs.edit()) {
+            NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE
+        ) ?: return
+        with(prefs.edit()) {
             putString(permission, status.toString())
             commit()
         }
@@ -76,7 +85,8 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
 
     private fun Context.getPrevPermissionStatus(permission: String): NotificationPermission? {
         val prefs = getSharedPreferences(
-            NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE) ?: return null
+            NOTIFICATION_PERMISSION_STATUS_PREFS, Context.MODE_PRIVATE
+        ) ?: return null
         val value = prefs.getString(permission, null) ?: return null
         return NotificationPermission.valueOf(value)
     }
@@ -87,7 +97,11 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ): Boolean {
         if (grantResults.isEmpty()) {
             callback?.onError(PermissionRequestCancelledException())
             disposeReference()
@@ -102,7 +116,8 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
                 permission = Manifest.permission.POST_NOTIFICATIONS
                 permissionIndex = permissions.indexOf(permission)
                 if (permissionIndex >= 0
-                    && grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED) {
+                    && grantResults[permissionIndex] == PackageManager.PERMISSION_GRANTED
+                ) {
                     permissionStatus = NotificationPermission.GRANTED
                 } else {
                     if (activity?.shouldShowRequestPermissionRationale(permission) == false) {
@@ -110,6 +125,7 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
                     }
                 }
             }
+
             else -> return false
         }
 

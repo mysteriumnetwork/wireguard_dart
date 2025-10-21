@@ -29,7 +29,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
                 backend.statusFlow.value,
-                backend.latestStats ?: TunnelStatistics(0,0,0),
+                backend.latestStats ?: TunnelStatistics(0, 0, 0),
                 notificationTitle
             )
         )

@@ -67,9 +67,13 @@ class NotificationHelper(private val context: Context) {
             .build()
     }
 
-    fun updateStatusNotification(status: ConnectionStatus, stats: TunnelStatistics? = null,notificationTitle: String,) {
+    fun updateStatusNotification(
+        status: ConnectionStatus,
+        stats: TunnelStatistics? = null,
+        notificationTitle: String,
+    ) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager?.notify(NOTIFICATION_ID, buildTunnelNotification(status, stats,notificationTitle))
+        manager?.notify(NOTIFICATION_ID, buildTunnelNotification(status, stats, notificationTitle))
     }
 
     private fun formatBytes(bytes: Long): String {
@@ -91,7 +95,8 @@ class NotificationHelper(private val context: Context) {
         val intent = pm.getLaunchIntentForPackage(context.packageName)
         val className = intent?.component?.className
         return try {
-            val classNameNonNull = className ?: throw IllegalStateException("Launch activity className is null")
+            val classNameNonNull =
+                className ?: throw IllegalStateException("Launch activity className is null")
             Class.forName(classNameNonNull)
         } catch (_: Exception) {
             android.app.Activity::class.java

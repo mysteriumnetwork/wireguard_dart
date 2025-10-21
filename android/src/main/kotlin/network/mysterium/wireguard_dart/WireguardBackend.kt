@@ -17,7 +17,8 @@ class WireguardBackend private constructor(
 ) {
     private val serviceTag = "WireguardBackend"
 
-    private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "wireguard-io-thread") }
+    private val executor =
+        Executors.newSingleThreadExecutor { r -> Thread(r, "wireguard-io-thread") }
     private val wireGuardDispatcher = executor.asCoroutineDispatcher()
 
     private val backend: GoBackend by lazy { GoBackend(appContext) }
@@ -94,7 +95,10 @@ class WireguardBackend private constructor(
                     .append("StackTrace:\n${Log.getStackTraceString(e)}")
                     .toString()
 
-                Log.e(serviceTag, "connectFromService failed for tunnel '$tunnelName': $detailedMessage")
+                Log.e(
+                    serviceTag,
+                    "connectFromService failed for tunnel '$tunnelName': $detailedMessage"
+                )
                 updateStatus(ConnectionStatus.disconnected)
                 _latestStats = null
 

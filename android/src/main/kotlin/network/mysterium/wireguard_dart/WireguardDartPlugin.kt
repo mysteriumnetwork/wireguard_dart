@@ -126,7 +126,11 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             havePermission = resultCode == Activity.RESULT_OK
             if (havePermission) permissionsResultCallback?.success(null)
-            else permissionsResultCallback?.error("err_setup_tunnel", "Permissions are not given", null)
+            else permissionsResultCallback?.error(
+                "err_setup_tunnel",
+                "Permissions are not given",
+                null
+            )
         }
         return havePermission
     }
@@ -150,7 +154,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
             "nativeInit" -> result.success("")
             "generateKeyPair" -> generateKeyPair(result)
             "setupTunnel" -> setupTunnel(call.argument<String>("tunnelName").toString(), result)
-            "checkTunnelConfiguration" -> checkTunnelConfiguration(call.argument<String>("tunnelName").toString(), result)
+            "checkTunnelConfiguration" -> checkTunnelConfiguration(
+                call.argument<String>("tunnelName").toString(), result
+            )
+
             "connect" -> connect(call.argument<String>("cfg").toString(), result)
             "disconnect" -> disconnect(result)
             "status" -> status(result)
@@ -234,7 +241,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 flutterError(result, e.details)
             } catch (e: Exception) {
                 Log.e(TAG, "connectFromService failed", e)
-                flutterError(result, "Connection failed: ${e.message}\n${Log.getStackTraceString(e)}")
+                flutterError(
+                    result,
+                    "Connection failed: ${e.message}\n${Log.getStackTraceString(e)}"
+                )
             }
         }
 
