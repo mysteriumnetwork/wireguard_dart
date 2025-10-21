@@ -10,10 +10,8 @@ class WireguardDart {
     return WireguardDartPlatform.instance.nativeInit();
   }
 
-  Future<void> setupTunnel(
-      {required String bundleId, required String tunnelName, String? win32ServiceName}) {
-    return WireguardDartPlatform.instance.setupTunnel(
-        bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) {
+    return WireguardDartPlatform.instance.setupTunnel(bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
   }
 
   Future<void> connect({required String cfg}) {
@@ -58,18 +56,3 @@ class WireguardDart {
     return WireguardDartPlatform.instance.requestNotificationPermission();
   }
 }
-
-//  "requestNotificationPermission" -> {
-//                     checkActivityNull().let {
-//                         val callback = object : NotificationPermissionCallback {
-//                             override fun onResult(permissionStatus: NotificationPermission) {
-//                                 result.success(permissionStatus.ordinal)
-//                             }
-
-//                             override fun onError(exception: Exception) {
-//                                 ErrorHandleUtils.handleMethodCallError(result, exception)
-//                             }
-//                         }
-//                         provider.getNotificationPermissionManager().requestPermission(it, callback)
-//                     }
-//                 }
