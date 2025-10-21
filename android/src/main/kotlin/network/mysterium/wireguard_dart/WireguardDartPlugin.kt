@@ -153,7 +153,11 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         when (call.method) {
             "nativeInit" -> result.success("")
             "generateKeyPair" -> generateKeyPair(result)
-            "setupTunnel" -> setupTunnel(call.argument<String>("tunnelName").toString(), result)
+            "setupTunnel" -> setupTunnel(
+                call.argument<String>("tunnelName").toString(),
+                result
+            )
+
             "checkTunnelConfiguration" -> checkTunnelConfiguration(
                 call.argument<String>("tunnelName").toString(), result
             )
@@ -187,7 +191,6 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
             permissionsResultCallback = result
             checkPermission()
             initTunnel(tunnelName)
-            flutterSuccess(result, true)
         }
     }
 
