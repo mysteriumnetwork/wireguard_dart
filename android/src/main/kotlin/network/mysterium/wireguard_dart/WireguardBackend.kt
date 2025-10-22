@@ -148,7 +148,7 @@ class WireguardBackend private constructor(
                 _latestStats =
                     if (_statusFlow.value == ConnectionStatus.connected) getStatisticsSnapshot() else null
 
-                delay(1000) // <-- 2 seconds delay
+                delay(1000) // <-- 1 seconds delay
             }
         }
     }

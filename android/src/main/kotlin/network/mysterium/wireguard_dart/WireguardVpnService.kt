@@ -5,7 +5,6 @@ import android.os.IBinder
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.*
-import java.sql.Connection
 
 class WireguardWrapperService : GoBackend.VpnService() {
 
@@ -36,8 +35,6 @@ class WireguardWrapperService : GoBackend.VpnService() {
         )
 
         // Cancel previous job if any
-        updateJob?.cancel()
-
         updateJob?.cancel()
         var startedTunnel = false
 
