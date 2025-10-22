@@ -102,4 +102,14 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
       throw Exception(e);
     }
   }
+
+  @override
+  Future<NotificationPermission> openAppNotificationSettings() async {
+    try{
+      final String result = await methodChannel.invokeMethod('openAppNotificationSettings');
+      return NotificationPermission.fromString(result);
+    } catch (e) {
+      throw Exception(e);
+    }
+  }
 }

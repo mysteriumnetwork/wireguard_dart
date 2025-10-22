@@ -55,4 +55,8 @@ class WireguardDart {
   Future<NotificationPermission> requestNotificationPermission() {
     return WireguardDartPlatform.instance.requestNotificationPermission();
   }
+
+  Future<NotificationPermission> openAppNotificationSettings() {
+    return WireguardDartPlatform.instance.openAppNotificationSettings();
+  }
 }

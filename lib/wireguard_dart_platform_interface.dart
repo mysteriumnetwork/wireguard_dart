@@ -75,4 +75,8 @@ abstract class WireguardDartPlatform extends PlatformInterface {
   Future<NotificationPermission> requestNotificationPermission() {
     throw UnimplementedError('requestNotificationPermission() has not been implemented');
   }
+
+  Future<NotificationPermission> openAppNotificationSettings() {
+    throw UnimplementedError('openAppNotificationSettings() has not been implemented');
+  }
 }

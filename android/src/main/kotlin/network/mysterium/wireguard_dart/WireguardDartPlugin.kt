@@ -44,6 +44,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
 
     private var activityBinding: ActivityPluginBinding? = null
 
+
     private var status: ConnectionStatus = ConnectionStatus.disconnected
         set(value) {
             field = value
@@ -118,6 +119,14 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        // Forward activity result to NotificationPermissionManager
+        if (::notificationPermissionManager.isInitialized) {
+            if (notificationPermissionManager.handleActivityResult(requestCode, resultCode, data)) {
+                return true
+            }
+        }
+
+        // Existing VPN permission handling
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             havePermission = resultCode == Activity.RESULT_OK
             if (havePermission) permissionsResultCallback?.success(null)
@@ -126,8 +135,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 "Permissions are not given",
                 null
             )
+            return true
         }
-        return havePermission
+
+        return false
     }
 
     // --- Utilities ---
@@ -163,6 +174,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
             "tunnelStatistics" -> statistics(result)
             "checkNotificationPermission" -> checkNotificationPermission(result)
             "requestNotificationPermission" -> requestNotificationPermission(result)
+            "openAppNotificationSettings" -> openNotificationPermissionSettings(result)
             else -> flutterNotImplemented(result)
         }
     }
@@ -298,6 +310,24 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         }
         notificationPermissionManager.requestPermission(checkActivity(), callback)
     }
+
+    private fun openNotificationPermissionSettings(result: MethodChannel.Result) {
+        try {
+            val callback = object : NotificationPermissionCallback {
+                override fun onResult(permissionStatus: NotificationPermission) {
+                    result.success(permissionStatus.name)
+                }
+
+                override fun onError(exception: Exception) {
+                    flutterError(result, exception.message.toString())
+                }
+            }
+            notificationPermissionManager.openAppNotificationSettings(checkActivity(), callback)
+        } catch (e: Exception) {
+            result.error("ERR_OPEN_NOTIFICATION_SETTINGS", e.message, null)
+        }
+    }
+
 
     private fun checkNotificationPermission(result: MethodChannel.Result) {
         val status = notificationPermissionManager.checkPermission(checkActivity())
