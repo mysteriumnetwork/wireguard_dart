@@ -1,5 +1,5 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:wireguard_dart/models/models.dart';
+import 'package:wireguard_dart/src/models/models.dart';
 
 import 'wireguard_dart_method_channel.dart';
 

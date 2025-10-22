@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:wireguard_dart/models/models.dart';
-import 'package:wireguard_dart/wireguard_dart.dart';
-import 'package:wireguard_dart/wireguard_dart_platform_interface.dart';
+import 'package:wireguard_dart/src/models/models.dart';
+import 'package:wireguard_dart/src/wireguard_dart.dart';
+import 'package:wireguard_dart/src/wireguard_dart_platform_interface.dart';
 
 import 'wireguard_dart_test.mocks.dart' as base_mock;
 

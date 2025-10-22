@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:wireguard_dart/models/models.dart';
+import 'package:wireguard_dart/src/models/models.dart';
 
 import 'wireguard_dart_platform_interface.dart';
 

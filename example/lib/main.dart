@@ -5,7 +5,6 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wireguard_dart/models/models.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 import 'package:wireguard_dart_example/snackbar.dart';
 
@@ -96,6 +95,26 @@ class _MyAppState extends State<MyApp> {
       );
       showSnackbar(
         "Failed to check notification permission: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Future<void> openAppNotificationSettings() async {
+    try {
+      final permission = await _wireguardDartPlugin.openAppNotificationSettings();
+      debugPrint("Opened app notification settings with permission status: $permission");
+      showSnackbar(
+        "Opened app notification settings with permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Open app notification settings',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to open app notification settings: ${e.toString()}",
         type: MessageType.error,
       );
     }
@@ -336,7 +355,7 @@ class _MyAppState extends State<MyApp> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    Text('Running on: $_platformVersion\n'),
+                    Text('Running on: ${Platform.operatingSystem}'),
                     Text('Notification Permission:'),
                     TextButton(
                       onPressed: checkNotificationPermission,
@@ -363,6 +382,20 @@ class _MyAppState extends State<MyApp> {
                               WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
                       child: const Text(
                         'Request Notification Permission',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: openAppNotificationSettings,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Open App Notification Settings',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
