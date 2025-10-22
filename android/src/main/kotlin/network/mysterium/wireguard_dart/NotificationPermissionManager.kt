@@ -25,13 +25,16 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
 
     // --- Check current permission ---
     fun checkPermission(activity: Activity): NotificationPermission {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return NotificationPermission.GRANTED
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
+            return NotificationPermission.GRANTED
 
         val permission = POST_NOTIFICATIONS_PERMISSION
         val isGranted = activity.isPermissionGranted(permission)
+        val wasRequestedBefore = activity.getPrevPermissionStatus(permission) != null
 
         val status = when {
             isGranted -> NotificationPermission.GRANTED
+            !wasRequestedBefore -> NotificationPermission.DENIED // first time → not asked yet
             !activity.shouldShowRequestPermissionRationale(permission) -> NotificationPermission.PERMANENTLY_DENIED
             else -> NotificationPermission.DENIED
         }
