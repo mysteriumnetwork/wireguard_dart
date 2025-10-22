@@ -141,14 +141,14 @@ class WireguardBackend private constructor(
                     Log.w(serviceTag, "Tunnel '${tunnel.getName()}' removed externally")
                     _latestStats = null
                     updateStatus(ConnectionStatus.disconnected)
-                    break // Stop monitoring but do NOT stop service
+                    break // Stop monitoring; service lifecycle is managed elsewhere and may self-terminate on disconnection
                 }
 
                 // Update latest stats only if connected
                 _latestStats =
                     if (_statusFlow.value == ConnectionStatus.connected) getStatisticsSnapshot() else null
 
-                delay(1000) // <-- 1 seconds delay
+                delay(1000) // <-- 1 second delay
             }
         }
     }

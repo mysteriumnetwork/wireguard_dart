@@ -117,6 +117,7 @@ class NotificationPermissionManager : PluginRegistry.RequestPermissionsResultLis
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             callback?.onResult(NotificationPermission.GRANTED)
+            disposeReference()
             return true
         }
 
