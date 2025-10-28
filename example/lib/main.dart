@@ -5,9 +5,6 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wireguard_dart/connection_status.dart';
-import 'package:wireguard_dart/key_pair.dart';
-import 'package:wireguard_dart/tunnel_statistics.dart';
 import 'package:wireguard_dart/wireguard_dart.dart';
 import 'package:wireguard_dart_example/snackbar.dart';
 
@@ -81,6 +78,66 @@ class _MyAppState extends State<MyApp> {
       _platformVersion = platformVersion;
       debugPrint(_platformVersion);
     });
+  }
+
+  Future<void> checkNotificationPermission() async {
+    try {
+      var permission = await _wireguardDartPlugin.checkNotificationPermission();
+      debugPrint("Notification permission status: $permission");
+      showSnackbar(
+        "Notification permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Check notification permission',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to check notification permission: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Future<void> openAppNotificationSettings() async {
+    try {
+      final permission = await _wireguardDartPlugin.openAppNotificationSettings();
+      debugPrint("Opened app notification settings with permission status: $permission");
+      showSnackbar(
+        "Opened app notification settings with permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Open app notification settings',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to open app notification settings: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
+  }
+
+  Future<void> requestNotificationPermission() async {
+    try {
+      var permission = await _wireguardDartPlugin.requestNotificationPermission();
+      debugPrint("Notification permission status: $permission");
+      showSnackbar(
+        "Notification permission status: ${permission.name}",
+        type: MessageType.success,
+      );
+    } catch (e) {
+      developer.log(
+        'Request notification permission',
+        error: e.toString(),
+      );
+      showSnackbar(
+        "Failed to request notification permission: ${e.toString()}",
+        type: MessageType.error,
+      );
+    }
   }
 
   void generateKey() async {
@@ -298,6 +355,51 @@ class _MyAppState extends State<MyApp> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
+                    Text('Running on: ${Platform.operatingSystem}'),
+                    Text('Notification Permission:'),
+                    TextButton(
+                      onPressed: checkNotificationPermission,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Check Notification Permission',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: requestNotificationPermission,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Request Notification Permission',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: openAppNotificationSettings,
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all<Size>(const Size(100, 50)),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.fromLTRB(20, 15, 20, 15)),
+                          backgroundColor: WidgetStateProperty.all<Color>(Colors.blueAccent),
+                          overlayColor:
+                              WidgetStateProperty.all<Color>(Colors.white.withValues(alpha: 0.1))),
+                      child: const Text(
+                        'Open App Notification Settings',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    Divider(),
                     TextButton(
                       onPressed: generateKey,
                       style: ButtonStyle(

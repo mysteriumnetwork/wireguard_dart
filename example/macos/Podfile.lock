@@ -20,10 +20,10 @@ EXTERNAL SOURCES:
     :podspec: https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.5/WireGuardKit.podspec
 
 SPEC CHECKSUMS:
-  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  wireguard_dart: c6c27bbc1469f9aa1f7984b64ce3aaf04136417b
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  wireguard_dart: 2ce686cf0417bf1309f16b02e4a740f385e1bd5a
   WireGuardKit: 44063ed405613ca3d234e489e24b015d434e2a64
 
 PODFILE CHECKSUM: 2d181daa2a2a0e9d7480efba669a3f523076f5aa
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

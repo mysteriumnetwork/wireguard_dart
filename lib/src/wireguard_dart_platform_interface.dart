@@ -1,8 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:wireguard_dart/tunnel_statistics.dart';
+import 'package:wireguard_dart/src/models/models.dart';
 
-import 'connection_status.dart';
-import 'key_pair.dart';
 import 'wireguard_dart_method_channel.dart';
 
 abstract class WireguardDartPlatform extends PlatformInterface {
@@ -68,5 +66,17 @@ abstract class WireguardDartPlatform extends PlatformInterface {
 
   Future<TunnelStatistics?> getTunnelStatistics() {
     throw UnimplementedError('getTunnelStatistics() has not been implemented');
+  }
+
+  Future<NotificationPermission> checkNotificationPermission() {
+    throw UnimplementedError('checkNotificationPermission() has not been implemented');
+  }
+
+  Future<NotificationPermission> requestNotificationPermission() {
+    throw UnimplementedError('requestNotificationPermission() has not been implemented');
+  }
+
+  Future<NotificationPermission> openAppNotificationSettings() {
+    throw UnimplementedError('openAppNotificationSettings() has not been implemented');
   }
 }

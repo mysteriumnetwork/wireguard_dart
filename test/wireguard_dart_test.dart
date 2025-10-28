@@ -2,10 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:wireguard_dart/connection_status.dart';
-import 'package:wireguard_dart/key_pair.dart';
-import 'package:wireguard_dart/wireguard_dart.dart';
-import 'package:wireguard_dart/wireguard_dart_platform_interface.dart';
+import 'package:wireguard_dart/src/models/models.dart';
+import 'package:wireguard_dart/src/wireguard_dart.dart';
+import 'package:wireguard_dart/src/wireguard_dart_platform_interface.dart';
 
 import 'wireguard_dart_test.mocks.dart' as base_mock;
 
@@ -281,5 +280,25 @@ void main() {
 
     expect(() => wireguardDart.connect(cfg: 'wrongConfig'), throwsException);
     verify(mockWireGuardDartPlatform.connect(cfg: 'wrongConfig')).called(1);
+  });
+
+  test('check push notification permission', () async {
+    when(mockWireGuardDartPlatform.checkNotificationPermission())
+        .thenAnswer((_) async => NotificationPermission.granted);
+
+    final result = await wireguardDart.checkNotificationPermission();
+
+    expect(result, NotificationPermission.granted);
+    verify(mockWireGuardDartPlatform.checkNotificationPermission()).called(1);
+  });
+
+  test('request push notification permission', () async {
+    when(mockWireGuardDartPlatform.requestNotificationPermission())
+        .thenAnswer((_) async => NotificationPermission.denied);
+
+    final result = await wireguardDart.requestNotificationPermission();
+
+    expect(result, NotificationPermission.denied);
+    verify(mockWireGuardDartPlatform.requestNotificationPermission()).called(1);
   });
 }
