@@ -53,6 +53,21 @@ class WireguardBackend private constructor(
                 Log.d("WireguardBackend", "Backend singleton initialized")
             }
         }
+
+        fun getOrCreateInstance(context: Context): WireguardBackend {
+            if (!::instance.isInitialized) {
+                synchronized(this) {
+                    if (!::instance.isInitialized) {
+                        instance = WireguardBackend(
+                            context.applicationContext,
+                            CoroutineScope(Job() + Dispatchers.Main.immediate)
+                        )
+                        Log.d("WireguardBackend", "Backend singleton auto-initialized from service")
+                    }
+                }
+            }
+            return instance
+        }
     }
 
     fun serviceCreated(service: WireguardWrapperService) {

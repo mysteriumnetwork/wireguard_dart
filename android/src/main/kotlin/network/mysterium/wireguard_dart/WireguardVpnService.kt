@@ -17,12 +17,13 @@ class WireguardWrapperService : GoBackend.VpnService() {
         super.onCreate()
         notificationHelper = NotificationHelper(this)
         NotificationHelper.initNotificationChannel(this)
-        WireguardBackend.instance.serviceCreated(this)
+        val backend = WireguardBackend.getOrCreateInstance(this)
+        backend.serviceCreated(this)
         Log.d(serviceTag, "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val backend = WireguardBackend.instance
+        val backend = WireguardBackend.getOrCreateInstance(this)
 
         // Show foreground notification immediately
         startForeground(
@@ -70,7 +71,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
 
     override fun onDestroy() {
         updateJob?.cancel()
-        WireguardBackend.instance.serviceDestroyed()
+        WireguardBackend.getOrCreateInstance(this).serviceDestroyed()
         super.onDestroy()
         Log.d(serviceTag, "Service destroyed")
     }
