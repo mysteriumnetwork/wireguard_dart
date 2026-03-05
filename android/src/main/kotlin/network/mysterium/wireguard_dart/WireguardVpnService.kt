@@ -33,7 +33,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
         val initialNotificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
         // Show foreground notification immediately
-        notificationHelper.startForegroundSafely(
+        val startedInForeground = notificationHelper.startForegroundSafely(
             this,
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
@@ -42,6 +42,12 @@ class WireguardWrapperService : GoBackend.VpnService() {
                 initialNotificationTitle
             )
         )
+
+        if (!startedInForeground) {
+            Log.w(serviceTag, "Unable to start foreground notification, stopping service")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         // Cancel previous job if any
         updateJob?.cancel()
