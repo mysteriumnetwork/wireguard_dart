@@ -1,10 +1,10 @@
 package network.mysterium.wireguard_dart
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Service
 import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
@@ -88,18 +88,50 @@ class NotificationHelper(private val context: Context) {
         stats: TunnelStatistics? = null,
         notificationTitle: String,
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
+        notifySafely(
+            NOTIFICATION_ID,
+            buildTunnelNotification(status, stats, notificationTitle)
+        )
+    }
+
+    fun startForegroundSafely(
+        service: Service,
+        notificationId: Int,
+        notification: Notification,
+    ): Boolean {
+        if (!hasPostNotificationsPermission()) {
+            Log.w(logTag, "Skipping startForeground: POST_NOTIFICATIONS permission not granted")
+            return false
+        }
+
+        return try {
+            service.startForeground(notificationId, notification)
+            true
+        } catch (e: SecurityException) {
+            Log.w(logTag, "Unable to start foreground notification due to security restriction", e)
+            false
+        }
+    }
+
+    private fun notifySafely(notificationId: Int, notification: Notification) {
+        if (!hasPostNotificationsPermission()) {
             return
         }
 
         val manager = context.getSystemService(NotificationManager::class.java)
         try {
-            manager?.notify(NOTIFICATION_ID, buildTunnelNotification(status, stats, notificationTitle))
+            manager?.notify(notificationId, notification)
         } catch (e: SecurityException) {
             Log.w(logTag, "Unable to update notification due to security restriction", e)
         }
+    }
+
+    private fun hasPostNotificationsPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+
+        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun formatBytes(bytes: Long): String {

@@ -11,6 +11,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
 
     companion object {
         private const val NOTIFICATION_UPDATE_MIN_INTERVAL_MS = 2_000L
+        private const val DEFAULT_NOTIFICATION_TITLE = "Mysterium VPN"
     }
 
     private val serviceTag = "WireguardWrapperService"
@@ -29,14 +30,16 @@ class WireguardWrapperService : GoBackend.VpnService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.getOrCreateInstance(this)
+        val initialNotificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
         // Show foreground notification immediately
-        startForeground(
+        notificationHelper.startForegroundSafely(
+            this,
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
                 ConnectionStatus.connecting,
                 TunnelStatistics(0, 0, 0),
-                "VPN"
+                initialNotificationTitle
             )
         )
 
@@ -52,7 +55,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
             while (isActive) {
                 val status = backend.statusFlow.value
                 val stats = backend.latestStats
-            val notificationTitle = backend.tunnelName ?: "Mysterium VPN"
+                val notificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
                 if (status == ConnectionStatus.connected) {
                     startedTunnel = true
