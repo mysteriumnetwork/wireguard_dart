@@ -1,16 +1,21 @@
 package network.mysterium.wireguard_dart
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.util.Locale
 
 class NotificationHelper(private val context: Context) {
+
+    private val logTag = "NotificationHelper"
 
     companion object {
         const val CHANNEL_ID = "network_wireguard_channel"
@@ -50,21 +55,32 @@ class NotificationHelper(private val context: Context) {
             "$baseText • ↑ $upload • ↓ $download"
         } else baseText
 
-        val pending = android.app.PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, getLaunchActivityClass(context)),
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
 
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        val pending = launchIntent?.let {
+            android.app.PendingIntent.getActivity(
+                context,
+                0,
+                it,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(notificationTitle)
             .setContentText(text)
             .setSmallIcon(R.drawable.baseline_vpn_key_24)
-            .setContentIntent(pending)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .build()
+
+        if (pending != null) {
+            builder.setContentIntent(pending)
+        }
+
+        return builder.build()
     }
 
     fun updateStatusNotification(
@@ -72,8 +88,18 @@ class NotificationHelper(private val context: Context) {
         stats: TunnelStatistics? = null,
         notificationTitle: String,
     ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager?.notify(NOTIFICATION_ID, buildTunnelNotification(status, stats, notificationTitle))
+        try {
+            manager?.notify(NOTIFICATION_ID, buildTunnelNotification(status, stats, notificationTitle))
+        } catch (e: SecurityException) {
+            Log.w(logTag, "Unable to update notification due to security restriction", e)
+        }
     }
 
     private fun formatBytes(bytes: Long): String {
@@ -85,21 +111,6 @@ class NotificationHelper(private val context: Context) {
             bytes >= mb -> String.format(Locale.US, "%.2f MB", bytes.toDouble() / mb)
             bytes >= kb -> String.format(Locale.US, "%.2f KB", bytes.toDouble() / kb)
             else -> "$bytes B"
-        }
-    }
-
-
-    @SuppressLint("DiscouragedPrivateApi")
-    private fun getLaunchActivityClass(context: Context): Class<*> {
-        val pm = context.packageManager
-        val intent = pm.getLaunchIntentForPackage(context.packageName)
-        val className = intent?.component?.className
-        return try {
-            val classNameNonNull =
-                className ?: throw IllegalStateException("Launch activity className is null")
-            Class.forName(classNameNonNull)
-        } catch (_: Exception) {
-            android.app.Activity::class.java
         }
     }
 }
