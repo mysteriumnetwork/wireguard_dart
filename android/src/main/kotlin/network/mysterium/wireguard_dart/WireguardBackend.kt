@@ -1,7 +1,9 @@
 package network.mysterium.wireguard_dart
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
@@ -88,6 +90,12 @@ class WireguardBackend private constructor(
         Log.d(serviceTag, "connectFromService: Initializing tunnel '$tunnelName'")
         withContext(wireGuardDispatcher) {
             try {
+                if (!startServiceIfNeeded(context)) {
+                    throw IllegalStateException(
+                        "POST_NOTIFICATIONS permission is required to start VPN foreground service"
+                    )
+                }
+
                 val cfg = Config.parse(ByteArrayInputStream(cfgString.toByteArray()))
                 currentConfig = cfg
 
@@ -98,9 +106,6 @@ class WireguardBackend private constructor(
                             Tunnel.State.UP -> ConnectionStatus.connected
                             Tunnel.State.DOWN -> ConnectionStatus.disconnected
                             else -> ConnectionStatus.unknown
-                        }
-                        if (newStatus == ConnectionStatus.connected) {
-                            startServiceIfNeeded(context)
                         }
                         Log.d(
                             serviceTag,
@@ -168,7 +173,15 @@ class WireguardBackend private constructor(
         }
     }
 
-    fun startServiceIfNeeded(context: Context) {
+    fun startServiceIfNeeded(context: Context): Boolean {
+        if (!canPostNotifications(context)) {
+            Log.w(
+                serviceTag,
+                "Not starting WireguardWrapperService: POST_NOTIFICATIONS permission not granted"
+            )
+            return false
+        }
+
         val intent = Intent(context, WireguardWrapperService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -177,9 +190,19 @@ class WireguardBackend private constructor(
                 context.startService(intent)
             }
             Log.d(serviceTag, "WireguardWrapperService started")
+            return true
         } catch (e: Exception) {
             Log.e(serviceTag, "Failed to start WireguardWrapperService", e)
+            return false
         }
+    }
+
+    private fun canPostNotifications(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+
+        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 
     suspend fun closeVpnTunnel(withStateChange: Boolean, context: Context) {

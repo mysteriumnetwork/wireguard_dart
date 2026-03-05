@@ -236,7 +236,17 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 flutterSuccess(result, "")
             } catch (e: WireguardConnectionException) {
                 Log.e(TAG, "connectFromService failed: ${e.details}")
-                flutterError(result, e.details)
+                if (e.originalException is IllegalStateException &&
+                    e.originalException.message?.contains("POST_NOTIFICATIONS") == true
+                ) {
+                    result.error(
+                        "ERR_NOTIFICATION_PERMISSION",
+                        "Notification permission is required to start VPN foreground service. Request POST_NOTIFICATIONS and retry.",
+                        null
+                    )
+                } else {
+                    flutterError(result, e.details)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "connectFromService failed", e)
                 flutterError(

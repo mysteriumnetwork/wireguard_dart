@@ -87,8 +87,8 @@ class NotificationHelper(private val context: Context) {
         status: ConnectionStatus,
         stats: TunnelStatistics? = null,
         notificationTitle: String,
-    ) {
-        notifySafely(
+    ): Boolean {
+        return notifySafely(
             NOTIFICATION_ID,
             buildTunnelNotification(status, stats, notificationTitle)
         )
@@ -113,16 +113,24 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
-    private fun notifySafely(notificationId: Int, notification: Notification) {
+    private fun notifySafely(notificationId: Int, notification: Notification): Boolean {
         if (!hasPostNotificationsPermission()) {
-            return
+            Log.w(logTag, "Skipping notify: POST_NOTIFICATIONS permission not granted")
+            return false
         }
 
         val manager = context.getSystemService(NotificationManager::class.java)
+        if (manager == null) {
+            Log.w(logTag, "Unable to update notification: NotificationManager unavailable")
+            return false
+        }
+
         try {
-            manager?.notify(notificationId, notification)
+            manager.notify(notificationId, notification)
+            return true
         } catch (e: SecurityException) {
             Log.w(logTag, "Unable to update notification due to security restriction", e)
+            return false
         }
     }
 

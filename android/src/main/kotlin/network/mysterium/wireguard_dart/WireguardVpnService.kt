@@ -83,15 +83,17 @@ class WireguardWrapperService : GoBackend.VpnService() {
                         statusOrTitleChanged || (statsChanged && intervalElapsed)
 
                     if (shouldUpdateNotification) {
-                        notificationHelper.updateStatusNotification(
+                        val notificationPosted = notificationHelper.updateStatusNotification(
                             status,
                             stats,
                             notificationTitle
                         )
-                        lastNotifiedStatus = status
-                        lastNotifiedStats = stats
-                        lastNotifiedTitle = notificationTitle
-                        lastNotifiedAtMs = nowMs
+                        if (notificationPosted) {
+                            lastNotifiedStatus = status
+                            lastNotifiedStats = stats
+                            lastNotifiedTitle = notificationTitle
+                            lastNotifiedAtMs = nowMs
+                        }
                     }
                 }
 
