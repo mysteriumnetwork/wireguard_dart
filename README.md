@@ -13,6 +13,11 @@ It includes [Wireguard implementation for the corresponding OS](https://www.wire
 
 To use this plugin, add `wireguard_dart` as a [dependency in your pubspec.yaml file](https://flutter.dev/platform-plugins/).
 
+### Android
+
+On Android 13+ (API 33+), VPN startup requires notification permission.
+This package declares `android.permission.POST_NOTIFICATIONS` in its library manifest, but your app still needs to request this permission at runtime before starting a tunnel.
+
 ## Development
 
 - Create a PR with proposed changes:
