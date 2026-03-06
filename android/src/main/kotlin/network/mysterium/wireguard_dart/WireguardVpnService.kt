@@ -55,7 +55,7 @@ class WireguardWrapperService : GoBackend.VpnService() {
         var lastNotifiedStatus: ConnectionStatus? = null
         var lastNotifiedStats: TunnelStatistics? = null
         var lastNotifiedTitle: String? = null
-        var lastNotifiedAtMs = 0L
+        var lastNotificationAttemptAtMs = 0L
 
         updateJob = scope.launch {
             while (isActive) {
@@ -78,11 +78,12 @@ class WireguardWrapperService : GoBackend.VpnService() {
                     val statsChanged = stats != lastNotifiedStats
                     val nowMs = SystemClock.elapsedRealtime()
                     val intervalElapsed =
-                        nowMs - lastNotifiedAtMs >= NOTIFICATION_UPDATE_MIN_INTERVAL_MS
+                        nowMs - lastNotificationAttemptAtMs >= NOTIFICATION_UPDATE_MIN_INTERVAL_MS
                     val shouldUpdateNotification =
                         statusOrTitleChanged || (statsChanged && intervalElapsed)
 
                     if (shouldUpdateNotification) {
+                        lastNotificationAttemptAtMs = nowMs
                         val notificationPosted = notificationHelper.updateStatusNotification(
                             status,
                             stats,
@@ -92,7 +93,6 @@ class WireguardWrapperService : GoBackend.VpnService() {
                             lastNotifiedStatus = status
                             lastNotifiedStats = stats
                             lastNotifiedTitle = notificationTitle
-                            lastNotifiedAtMs = nowMs
                         }
                     }
                 }
