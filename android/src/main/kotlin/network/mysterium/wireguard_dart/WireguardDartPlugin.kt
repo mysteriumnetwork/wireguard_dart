@@ -129,12 +129,13 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         // Existing VPN permission handling
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             havePermission = resultCode == Activity.RESULT_OK
-            if (havePermission) permissionsResultCallback?.success(null)
-            else permissionsResultCallback?.error(
-                "err_setup_tunnel",
-                "Permissions are not given",
-                null
-            )
+            permissionsResultCallback?.let { callback ->
+                if (havePermission) {
+                    flutterSuccess(callback, null)
+                } else {
+                    flutterError(callback, "err_setup_tunnel", "Permissions are not given")
+                }
+            }
             return true
         }
 
@@ -150,6 +151,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         scope.launch(Dispatchers.Main) { result.error(error, null, null) }
     }
 
+    private fun flutterError(result: MethodChannel.Result, errorCode: String, errorMessage: String?) {
+        scope.launch(Dispatchers.Main) { result.error(errorCode, errorMessage, null) }
+    }
+
     private fun flutterNotImplemented(result: MethodChannel.Result) {
         scope.launch(Dispatchers.Main) { result.notImplemented() }
     }
@@ -157,7 +162,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     // === Dart exposed methods ===
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "nativeInit" -> result.success("")
+            "nativeInit" -> flutterSuccess(result, "")
             "generateKeyPair" -> generateKeyPair(result)
             "setupTunnel" -> setupTunnel(
                 call.argument<String>("tunnelName").toString(),
@@ -181,7 +186,8 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
 
     private fun generateKeyPair(result: MethodChannel.Result) {
         val keyPair = KeyPair()
-        result.success(
+        flutterSuccess(
+            result,
             hashMapOf(
                 "privateKey" to keyPair.privateKey.toBase64(),
                 "publicKey" to keyPair.publicKey.toBase64()
@@ -213,7 +219,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         val intent = GoBackend.VpnService.prepare(activity)
         havePermission = intent == null
         if (havePermission) initTunnel(tunnelName)
-        result.success(havePermission)
+        flutterSuccess(result, havePermission)
     }
 
     private fun connect(cfg: String, result: MethodChannel.Result) {
@@ -236,17 +242,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 flutterSuccess(result, "")
             } catch (e: WireguardConnectionException) {
                 Log.e(TAG, "connectFromService failed: ${e.details}")
-                if (e.originalException is IllegalStateException &&
-                    e.originalException.message?.contains("POST_NOTIFICATIONS") == true
-                ) {
-                    result.error(
-                        "ERR_NOTIFICATION_PERMISSION",
-                        "Notification permission is required to start VPN foreground service. Request POST_NOTIFICATIONS and retry.",
-                        null
-                    )
-                } else {
-                    flutterError(result, e.details)
-                }
+                flutterError(result, e.errorCode, e.details)
             } catch (e: Exception) {
                 Log.e(TAG, "connectFromService failed", e)
                 flutterError(
@@ -305,13 +301,13 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     }
 
     private fun status(result: MethodChannel.Result) {
-        result.success(WireguardBackend.instance.statusFlow.value.name)
+        flutterSuccess(result, WireguardBackend.instance.statusFlow.value.name)
     }
 
     private fun requestNotificationPermission(result: MethodChannel.Result) {
         val callback = object : NotificationPermissionCallback {
             override fun onResult(permissionStatus: NotificationPermission) {
-                result.success(permissionStatus.name)
+                flutterSuccess(result, permissionStatus.name)
             }
 
             override fun onError(exception: Exception) {
@@ -325,7 +321,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         try {
             val callback = object : NotificationPermissionCallback {
                 override fun onResult(permissionStatus: NotificationPermission) {
-                    result.success(permissionStatus.name)
+                    flutterSuccess(result, permissionStatus.name)
                 }
 
                 override fun onError(exception: Exception) {
@@ -334,14 +330,14 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
             }
             notificationPermissionManager.openAppNotificationSettings(checkActivity(), callback)
         } catch (e: Exception) {
-            result.error("ERR_OPEN_NOTIFICATION_SETTINGS", e.message, null)
+            flutterError(result, "ERR_OPEN_NOTIFICATION_SETTINGS", e.message)
         }
     }
 
 
     private fun checkNotificationPermission(result: MethodChannel.Result) {
         val status = notificationPermissionManager.checkPermission(checkActivity())
-        result.success(status.name)
+        flutterSuccess(result, status.name)
     }
 
     private fun checkActivity(): Activity {

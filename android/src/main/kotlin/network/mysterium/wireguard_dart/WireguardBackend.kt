@@ -1,9 +1,7 @@
 package network.mysterium.wireguard_dart
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
@@ -91,9 +89,7 @@ class WireguardBackend private constructor(
         withContext(wireGuardDispatcher) {
             try {
                 if (!startServiceIfNeeded(context)) {
-                    throw IllegalStateException(
-                        "POST_NOTIFICATIONS permission is required to start VPN foreground service"
-                    )
+                    throw Exception("Failed to start WireguardWrapperService")
                 }
 
                 val cfg = Config.parse(ByteArrayInputStream(cfgString.toByteArray()))
@@ -127,7 +123,12 @@ class WireguardBackend private constructor(
                 Log.e(serviceTag, "connectFromService failed: $detailedMessage")
                 updateStatus(ConnectionStatus.disconnected)
                 _latestStats = null
-                throw WireguardConnectionException(tunnelName, e, detailedMessage)
+                throw WireguardConnectionException(
+                    tunnelName,
+                    e,
+                    detailedMessage,
+                    WireguardErrorCode.CONNECTION_FAILED
+                )
             }
         }
     }
@@ -174,14 +175,6 @@ class WireguardBackend private constructor(
     }
 
     fun startServiceIfNeeded(context: Context): Boolean {
-        if (!canPostNotifications(context)) {
-            Log.w(
-                serviceTag,
-                "Not starting WireguardWrapperService: POST_NOTIFICATIONS permission not granted"
-            )
-            return false
-        }
-
         val intent = Intent(context, WireguardWrapperService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -195,14 +188,6 @@ class WireguardBackend private constructor(
             Log.e(serviceTag, "Failed to start WireguardWrapperService", e)
             return false
         }
-    }
-
-    private fun canPostNotifications(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            return true
-        }
-
-        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 
     suspend fun closeVpnTunnel(withStateChange: Boolean, context: Context) {

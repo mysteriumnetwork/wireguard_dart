@@ -15,8 +15,8 @@ To use this plugin, add `wireguard_dart` as a [dependency in your pubspec.yaml f
 
 ### Android
 
-On Android 13+ (API 33+), VPN startup requires notification permission.
-This package declares `android.permission.POST_NOTIFICATIONS` in its library manifest, but your app still needs to request this permission at runtime before starting a tunnel.
+On Android 13+ (API 33+), this package declares `android.permission.POST_NOTIFICATIONS` in its library manifest.
+`connect()` does not hard-fail when this permission is not granted, but requesting notification permission is still recommended for proper foreground notification visibility.
 
 ## Development
 

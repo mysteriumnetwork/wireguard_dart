@@ -99,11 +99,6 @@ class NotificationHelper(private val context: Context) {
         notificationId: Int,
         notification: Notification,
     ): Boolean {
-        if (!hasPostNotificationsPermission()) {
-            Log.w(logTag, "Skipping startForeground: POST_NOTIFICATIONS permission not granted")
-            return false
-        }
-
         return try {
             service.startForeground(notificationId, notification)
             true
