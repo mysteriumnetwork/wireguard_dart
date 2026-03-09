@@ -13,6 +13,11 @@ It includes [Wireguard implementation for the corresponding OS](https://www.wire
 
 To use this plugin, add `wireguard_dart` as a [dependency in your pubspec.yaml file](https://flutter.dev/platform-plugins/).
 
+### Android
+
+On Android 13+ (API 33+), this package declares `android.permission.POST_NOTIFICATIONS` in its library manifest.
+`connect()` does not hard-fail when this permission is not granted, but requesting notification permission is still recommended for proper foreground notification visibility.
+
 ## Development
 
 - Create a PR with proposed changes:

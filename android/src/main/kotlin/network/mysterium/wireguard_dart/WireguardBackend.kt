@@ -88,6 +88,10 @@ class WireguardBackend private constructor(
         Log.d(serviceTag, "connectFromService: Initializing tunnel '$tunnelName'")
         withContext(wireGuardDispatcher) {
             try {
+                if (!startServiceIfNeeded(context)) {
+                    throw Exception("Failed to start WireguardWrapperService")
+                }
+
                 val cfg = Config.parse(ByteArrayInputStream(cfgString.toByteArray()))
                 currentConfig = cfg
 
@@ -98,9 +102,6 @@ class WireguardBackend private constructor(
                             Tunnel.State.UP -> ConnectionStatus.connected
                             Tunnel.State.DOWN -> ConnectionStatus.disconnected
                             else -> ConnectionStatus.unknown
-                        }
-                        if (newStatus == ConnectionStatus.connected) {
-                            startServiceIfNeeded(context)
                         }
                         Log.d(
                             serviceTag,
@@ -122,7 +123,12 @@ class WireguardBackend private constructor(
                 Log.e(serviceTag, "connectFromService failed: $detailedMessage")
                 updateStatus(ConnectionStatus.disconnected)
                 _latestStats = null
-                throw WireguardConnectionException(tunnelName, e, detailedMessage)
+                throw WireguardConnectionException(
+                    tunnelName,
+                    e,
+                    detailedMessage,
+                    WireguardErrorCode.CONNECTION_FAILED
+                )
             }
         }
     }
@@ -168,7 +174,7 @@ class WireguardBackend private constructor(
         }
     }
 
-    fun startServiceIfNeeded(context: Context) {
+    fun startServiceIfNeeded(context: Context): Boolean {
         val intent = Intent(context, WireguardWrapperService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -177,8 +183,10 @@ class WireguardBackend private constructor(
                 context.startService(intent)
             }
             Log.d(serviceTag, "WireguardWrapperService started")
+            return true
         } catch (e: Exception) {
             Log.e(serviceTag, "Failed to start WireguardWrapperService", e)
+            return false
         }
     }
 

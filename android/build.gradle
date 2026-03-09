@@ -3,14 +3,14 @@ version '1.0-SNAPSHOT'
 
 buildscript {
     ext.kotlin_version = '2.2.10'
-    ext.wireguard_tunnel_version = '1.0.20230706'
+    ext.wireguard_tunnel_version = '1.0.20260102'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }

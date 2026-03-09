@@ -1,6 +1,10 @@
 import 'models/models.dart';
 import 'wireguard_dart_platform_interface.dart';
 
+class WireguardErrorCodes {
+  static const String connectionFailed = 'ERR_WIREGUARD_CONNECTION';
+}
+
 class WireguardDart {
   Future<KeyPair> generateKeyPair() {
     return WireguardDartPlatform.instance.generateKeyPair();
@@ -10,10 +14,8 @@ class WireguardDart {
     return WireguardDartPlatform.instance.nativeInit();
   }
 
-  Future<void> setupTunnel(
-      {required String bundleId, required String tunnelName, String? win32ServiceName}) {
-    return WireguardDartPlatform.instance.setupTunnel(
-        bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
+  Future<void> setupTunnel({required String bundleId, required String tunnelName, String? win32ServiceName}) {
+    return WireguardDartPlatform.instance.setupTunnel(bundleId: bundleId, tunnelName: tunnelName, win32ServiceName: win32ServiceName);
   }
 
   Future<void> connect({required String cfg}) {

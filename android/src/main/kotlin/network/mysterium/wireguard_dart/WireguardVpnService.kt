@@ -2,11 +2,17 @@ package network.mysterium.wireguard_dart
 
 import android.content.Intent
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.*
 
 class WireguardWrapperService : GoBackend.VpnService() {
+
+    companion object {
+        private const val NOTIFICATION_UPDATE_MIN_INTERVAL_MS = 2_000L
+        private const val DEFAULT_NOTIFICATION_TITLE = "Mysterium VPN"
+    }
 
     private val serviceTag = "WireguardWrapperService"
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
@@ -24,25 +30,38 @@ class WireguardWrapperService : GoBackend.VpnService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.getOrCreateInstance(this)
+        val initialNotificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
         // Show foreground notification immediately
-        startForeground(
+        val startedInForeground = notificationHelper.startForegroundSafely(
+            this,
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
                 ConnectionStatus.connecting,
                 TunnelStatistics(0, 0, 0),
-                "VPN"
+                initialNotificationTitle
             )
         )
+
+        if (!startedInForeground) {
+            Log.w(serviceTag, "Unable to start foreground notification, stopping service")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         // Cancel previous job if any
         updateJob?.cancel()
         var startedTunnel = false
+        var lastNotifiedStatus: ConnectionStatus? = null
+        var lastNotifiedStats: TunnelStatistics? = null
+        var lastNotifiedTitle: String? = null
+        var lastNotificationAttemptAtMs = 0L
 
         updateJob = scope.launch {
             while (isActive) {
                 val status = backend.statusFlow.value
                 val stats = backend.latestStats
+                val notificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
                 if (status == ConnectionStatus.connected) {
                     startedTunnel = true
@@ -54,11 +73,28 @@ class WireguardWrapperService : GoBackend.VpnService() {
                     stopSelf()
                     break
                 } else if (status != ConnectionStatus.disconnected) {
-                    notificationHelper.updateStatusNotification(
-                        status,
-                        stats,
-                        backend.tunnelName ?: "Mysterium VPN"
-                    )
+                    val statusOrTitleChanged =
+                        status != lastNotifiedStatus || notificationTitle != lastNotifiedTitle
+                    val statsChanged = stats != lastNotifiedStats
+                    val nowMs = SystemClock.elapsedRealtime()
+                    val intervalElapsed =
+                        nowMs - lastNotificationAttemptAtMs >= NOTIFICATION_UPDATE_MIN_INTERVAL_MS
+                    val shouldUpdateNotification =
+                        statusOrTitleChanged || (statsChanged && intervalElapsed)
+
+                    if (shouldUpdateNotification) {
+                        lastNotificationAttemptAtMs = nowMs
+                        val notificationPosted = notificationHelper.updateStatusNotification(
+                            status,
+                            stats,
+                            notificationTitle
+                        )
+                        if (notificationPosted) {
+                            lastNotifiedStatus = status
+                            lastNotifiedStats = stats
+                            lastNotifiedTitle = notificationTitle
+                        }
+                    }
                 }
 
                 delay(1000)
