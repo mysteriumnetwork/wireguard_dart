@@ -18,33 +18,67 @@ class WireguardWrapperService : GoBackend.VpnService() {
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
     private lateinit var notificationHelper: NotificationHelper
     private var updateJob: Job? = null
+    private var startedInForeground = false
 
     override fun onCreate() {
         super.onCreate()
         notificationHelper = NotificationHelper(this)
         NotificationHelper.initNotificationChannel(this)
         val backend = WireguardBackend.getOrCreateInstance(this)
+
+        // Satisfy the startForegroundService() contract as early as possible. Android arms a
+        // ~10s deadline at startForegroundService() and crashes the process with
+        // ForegroundServiceDidNotStartInTimeException if startForeground() is not called in time.
+        // Doing it here (instead of only in onStartCommand) guarantees we beat the deadline even
+        // when the main thread is busy or onStartCommand is delayed.
+        startedInForeground = notificationHelper.startForegroundSafely(
+            this,
+            NotificationHelper.NOTIFICATION_ID,
+            notificationHelper.buildTunnelNotification(
+                ConnectionStatus.connecting,
+                TunnelStatistics(0, 0, 0),
+                backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
+            )
+        )
+
+        if (!startedInForeground) {
+            // The startForegroundService() contract can no longer be met. Stop now: a destroying
+            // service makes the system's foreground-timeout handler bail out, so we avoid the
+            // ForegroundServiceDidNotStartInTimeException instead of lingering with an unmet contract.
+            Log.w(serviceTag, "Unable to enter foreground in onCreate, stopping service")
+            stopSelf()
+            return
+        }
+
         backend.serviceCreated(this)
         Log.d(serviceTag, "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.getOrCreateInstance(this)
-        val initialNotificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
-        // Show foreground notification immediately
-        val startedInForeground = notificationHelper.startForegroundSafely(
-            this,
-            NotificationHelper.NOTIFICATION_ID,
-            notificationHelper.buildTunnelNotification(
-                ConnectionStatus.connecting,
-                TunnelStatistics(0, 0, 0),
-                initialNotificationTitle
+        // The foreground notification is normally posted in onCreate to beat the
+        // startForegroundService() deadline. Re-assert it here (idempotent) so a re-delivered
+        // start that reuses an existing instance keeps the service in the foreground.
+        if (notificationHelper.startForegroundSafely(
+                this,
+                NotificationHelper.NOTIFICATION_ID,
+                notificationHelper.buildTunnelNotification(
+                    ConnectionStatus.connecting,
+                    TunnelStatistics(0, 0, 0),
+                    backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
+                )
             )
-        )
+        ) {
+            startedInForeground = true
+        }
 
         if (!startedInForeground) {
-            Log.w(serviceTag, "Unable to start foreground notification, stopping service")
+            // Foreground was never successfully established (onCreate's attempt failed and this one
+            // did too), so the startForegroundService() contract is unmet. Stop rather than risk
+            // ForegroundServiceDidNotStartInTimeException. A failed re-assert while already in the
+            // foreground is harmless and intentionally does not stop a working tunnel.
+            Log.w(serviceTag, "Unable to enter foreground in onStartCommand, stopping service")
             stopSelf()
             return START_NOT_STICKY
         }
