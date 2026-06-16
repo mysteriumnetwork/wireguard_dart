@@ -24,30 +24,41 @@ class WireguardWrapperService : GoBackend.VpnService() {
         notificationHelper = NotificationHelper(this)
         NotificationHelper.initNotificationChannel(this)
         val backend = WireguardBackend.getOrCreateInstance(this)
+
+        // Satisfy the startForegroundService() contract as early as possible. Android arms a
+        // ~10s deadline at startForegroundService() and crashes the process with
+        // ForegroundServiceDidNotStartInTimeException if startForeground() is not called in time.
+        // Doing it here (instead of only in onStartCommand) guarantees we beat the deadline even
+        // when the main thread is busy or onStartCommand is delayed.
+        notificationHelper.startForegroundSafely(
+            this,
+            NotificationHelper.NOTIFICATION_ID,
+            notificationHelper.buildTunnelNotification(
+                ConnectionStatus.connecting,
+                TunnelStatistics(0, 0, 0),
+                backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
+            )
+        )
+
         backend.serviceCreated(this)
         Log.d(serviceTag, "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val backend = WireguardBackend.getOrCreateInstance(this)
-        val initialNotificationTitle = backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
 
-        // Show foreground notification immediately
-        val startedInForeground = notificationHelper.startForegroundSafely(
+        // The foreground notification is already posted in onCreate to beat the
+        // startForegroundService() deadline. Re-assert it here (idempotent) so a system restart
+        // that reuses an existing instance keeps the service in the foreground.
+        notificationHelper.startForegroundSafely(
             this,
             NotificationHelper.NOTIFICATION_ID,
             notificationHelper.buildTunnelNotification(
                 ConnectionStatus.connecting,
                 TunnelStatistics(0, 0, 0),
-                initialNotificationTitle
+                backend.tunnelName ?: DEFAULT_NOTIFICATION_TITLE
             )
         )
-
-        if (!startedInForeground) {
-            Log.w(serviceTag, "Unable to start foreground notification, stopping service")
-            stopSelf()
-            return START_NOT_STICKY
-        }
 
         // Cancel previous job if any
         updateJob?.cancel()
