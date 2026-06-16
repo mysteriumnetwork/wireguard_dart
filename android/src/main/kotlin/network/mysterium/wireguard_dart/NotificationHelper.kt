@@ -5,8 +5,8 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ComponentName
 import android.content.pm.PackageManager
-import android.content.pm.ServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -102,19 +102,34 @@ class NotificationHelper(private val context: Context) {
         notification: Notification,
     ): Boolean {
         return try {
-            // Match the foregroundServiceType declared in the manifest (systemExempted) on API 34+.
-            val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
-            } else {
-                0
-            }
-            ServiceCompat.startForeground(service, notificationId, notification, serviceType)
+            ServiceCompat.startForeground(
+                service,
+                notificationId,
+                notification,
+                declaredForegroundServiceType(service)
+            )
             true
         } catch (e: Exception) {
             // Includes SecurityException and ForegroundServiceStartNotAllowedException. Never let
             // this escape onCreate/onStartCommand as an uncaught crash.
             Log.w(logTag, "Unable to start foreground service", e)
             false
+        }
+    }
+
+    // Read the foregroundServiceType actually declared in the merged manifest for this service so
+    // the bitmask passed to startForeground() always matches the manifest across API levels.
+    private fun declaredForegroundServiceType(service: Service): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return 0
+        }
+        return try {
+            service.packageManager
+                .getServiceInfo(ComponentName(service, service.javaClass), 0)
+                .foregroundServiceType
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.w(logTag, "Unable to read declared foregroundServiceType, defaulting to 0", e)
+            0
         }
     }
 
