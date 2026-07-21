@@ -11,9 +11,9 @@ enum NotificationPermission {
 
   /// Converts a string (from Android native side) into a [NotificationPermission].
   static NotificationPermission fromString(String? value) => switch (value?.toUpperCase()) {
-        'GRANTED' => NotificationPermission.granted,
-        'PERMANENTLY_DENIED' => NotificationPermission.permanentlyDenied,
-        'DENIED' || null => NotificationPermission.denied,
-        _ => NotificationPermission.denied,
-      };
+    'GRANTED' => NotificationPermission.granted,
+    'PERMANENTLY_DENIED' => NotificationPermission.permanentlyDenied,
+    'DENIED' || null => NotificationPermission.denied,
+    _ => NotificationPermission.denied,
+  };
 }

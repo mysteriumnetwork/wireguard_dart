@@ -9,28 +9,32 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-      switch (call.method) {
-        case 'generateKeyPair':
-          return null;
-        case 'setupTunnel':
-          return null;
-        case 'status':
-          return null;
-        case 'connect':
-          return null;
-        case 'disconnect':
-          return null;
-        default:
-          throw MissingPluginException();
-      }
-    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async {
+        switch (call.method) {
+          case 'generateKeyPair':
+            return null;
+          case 'setupTunnel':
+            return null;
+          case 'status':
+            return null;
+          case 'connect':
+            return null;
+          case 'disconnect':
+            return null;
+          default:
+            throw MissingPluginException();
+        }
+      },
+    );
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      null,
+    );
   });
 
   test('getPlatformVersion', () async {
