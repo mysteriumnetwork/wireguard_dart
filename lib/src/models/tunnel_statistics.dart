@@ -16,14 +16,15 @@ class TunnelStatistics {
 
   /// Factory constructor that creates a [TunnelStatistics] object from a JSON map.
   factory TunnelStatistics.fromJson(Map<String, dynamic> json) => TunnelStatistics(
-      totalDownload: json['totalDownload'] as int,
-      totalUpload: json['totalUpload'] as int,
-      latestHandshake: json['latestHandshake'] as int);
+    totalDownload: json['totalDownload'] as int,
+    totalUpload: json['totalUpload'] as int,
+    latestHandshake: json['latestHandshake'] as int,
+  );
 
   /// Converts the [TunnelStatistics] object to a JSON map.
   Map<String, dynamic> toJson() => {
-        'totalDownload': totalDownload,
-        'totalUpload': totalUpload,
-        'latestHandshake': latestHandshake,
-      };
+    'totalDownload': totalDownload,
+    'totalUpload': totalUpload,
+    'latestHandshake': latestHandshake,
+  };
 }
