@@ -146,7 +146,9 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     }
 
     // The tunnel service names its UAPI pipe after the config file's basename.
-    this->tunnel_name_ = std::filesystem::path(wg_config_filename).stem().wstring();
+    // Held locally until the service actually starts, so a failure below cannot
+    // leave a name pointing at a tunnel that never ran.
+    const std::wstring tunnel_name = std::filesystem::path(wg_config_filename).stem().wstring();
 
     wchar_t module_filename[MAX_PATH];
     GetModuleFileName(NULL, module_filename, MAX_PATH);
@@ -199,6 +201,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       result->Error("UNKNOWN_ERROR", error_message);  // Error code: UNKNOWN_ERROR
       return;
     }
+    this->tunnel_name_ = tunnel_name;
     result->Success();
     return;
   }

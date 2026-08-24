@@ -22,7 +22,8 @@ void main() {
       expect(stats, isNotNull);
       expect(stats!.totalDownload, 2048);
       expect(stats.totalUpload, 1024);
-      expect(stats.latestHandshake, 1756000000 * 1000);
+      // 123456789 ns contributes 123 ms.
+      expect(stats.latestHandshake, 1756000000 * 1000 + 123);
     });
 
     test('sums byte counters across peers and takes the most recent handshake', () {
@@ -42,6 +43,22 @@ void main() {
       expect(stats!.totalDownload, 500);
       expect(stats.totalUpload, 50);
       expect(stats.latestHandshake, 1756000500 * 1000);
+    });
+
+    test('keeps sub-second precision from the nanosecond component', () {
+      const uapi =
+          'public_key=aa\nlast_handshake_time_sec=1756000000\n'
+          'last_handshake_time_nsec=999000000\nrx_bytes=1\ntx_bytes=1\nerrno=0\n\n';
+
+      expect(TunnelStatistics.fromUapi(uapi)!.latestHandshake, 1756000000 * 1000 + 999);
+    });
+
+    test('ignores a nanosecond component when the peer never handshaked', () {
+      const uapi =
+          'public_key=aa\nlast_handshake_time_sec=0\n'
+          'last_handshake_time_nsec=123456789\nrx_bytes=1\ntx_bytes=1\nerrno=0\n\n';
+
+      expect(TunnelStatistics.fromUapi(uapi)!.latestHandshake, 0);
     });
 
     test('reports a never-handshaked peer as handshake 0', () {

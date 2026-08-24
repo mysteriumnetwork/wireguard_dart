@@ -31,8 +31,25 @@ class TunnelStatistics {
   static TunnelStatistics? fromUapi(String uapi) {
     var totalDownload = 0;
     var totalUpload = 0;
-    var latestHandshakeSec = 0;
+    var latestHandshake = 0;
     var sawCounters = false;
+    // UAPI splits a peer's handshake across `last_handshake_time_sec` and the
+    // `last_handshake_time_nsec` line that follows it, so the seconds are held
+    // until the nanoseconds arrive (or the next peer starts).
+    int? pendingHandshakeSec;
+
+    void commitHandshake([int nsec = 0]) {
+      final seconds = pendingHandshakeSec;
+      pendingHandshakeSec = null;
+      // 0 means the peer has never completed a handshake.
+      if (seconds == null || seconds <= 0) {
+        return;
+      }
+      final milliseconds = seconds * 1000 + nsec ~/ 1000000;
+      if (milliseconds > latestHandshake) {
+        latestHandshake = milliseconds;
+      }
+    }
 
     for (final rawLine in uapi.split('\n')) {
       final line = rawLine.trim();
@@ -53,13 +70,15 @@ class TunnelStatistics {
         totalUpload += value;
         sawCounters = true;
       } else if (key == 'last_handshake_time_sec') {
-        if (value > latestHandshakeSec) {
-          latestHandshakeSec = value;
-        }
+        commitHandshake();
+        pendingHandshakeSec = value;
+      } else if (key == 'last_handshake_time_nsec') {
+        commitHandshake(value);
       } else if (key == 'errno' && value != 0) {
         return null;
       }
     }
+    commitHandshake();
 
     if (!sawCounters) {
       return null;
@@ -68,7 +87,7 @@ class TunnelStatistics {
     return TunnelStatistics(
       totalDownload: totalDownload,
       totalUpload: totalUpload,
-      latestHandshake: latestHandshakeSec * 1000,
+      latestHandshake: latestHandshake,
     );
   }
 

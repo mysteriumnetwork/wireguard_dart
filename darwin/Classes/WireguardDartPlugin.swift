@@ -240,7 +240,11 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 DispatchQueue.main.async {
                     guard !didRespond else { return }
                     didRespond = true
+                    // cancel() alone leaves the work item — and through it this
+                    // closure and the consumed FlutterResult — retained by the
+                    // captured box, so drop the reference to break the cycle.
                     timeout?.cancel()
+                    timeout = nil
                     result(uapi)
                 }
             }
