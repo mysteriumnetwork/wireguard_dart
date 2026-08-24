@@ -34,6 +34,8 @@ list(APPEND PLUGIN_SOURCES
   "connection_status_observer.cpp"
   "utils.cpp"
   "utils.h"
+  "uapi_pipe.cpp"
+  "uapi_pipe.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

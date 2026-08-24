@@ -18,6 +18,7 @@
 #include "key_generator.h"
 #include "service_control.h"
 #include "tunnel.h"
+#include "uapi_pipe.h"
 #include "utils.h"
 #include "wireguard.h"
 
@@ -143,6 +144,19 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       return;
     }
 
+    // The tunnel service names its UAPI pipe after the config file's basename.
+    {
+      auto separator = wg_config_filename.find_last_of(L"\\/");
+      std::wstring basename =
+          separator == std::wstring::npos ? wg_config_filename : wg_config_filename.substr(separator + 1);
+      const std::wstring kConfExtension = L".conf";
+      if (basename.size() > kConfExtension.size() &&
+          basename.compare(basename.size() - kConfExtension.size(), kConfExtension.size(), kConfExtension) == 0) {
+        basename = basename.substr(0, basename.size() - kConfExtension.size());
+      }
+      this->tunnel_name_ = basename;
+    }
+
     wchar_t module_filename[MAX_PATH];
     GetModuleFileName(NULL, module_filename, MAX_PATH);
     auto current_exec_dir = std::wstring(module_filename);
@@ -236,6 +250,8 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
       return;
     }
 
+    this->tunnel_name_.clear();
+
     result->Success();
     return;
   }
@@ -252,6 +268,16 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     } catch (std::exception &e) {
       result->Error(std::string(e.what()));
     }
+    return;
+  }
+
+  if (call.method_name() == "tunnelStatistics") {
+    auto uapi = QueryUapi(this->tunnel_name_);
+    if (!uapi.has_value()) {
+      result->Success(flutter::EncodableValue());
+      return;
+    }
+    result->Success(flutter::EncodableValue(*uapi));
     return;
   }
 
