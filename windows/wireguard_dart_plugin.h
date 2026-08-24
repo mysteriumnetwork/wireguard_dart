@@ -5,6 +5,7 @@
 #include <flutter/plugin_registrar_windows.h>
 
 #include <memory>
+#include <string>
 
 #include "service_control.h"
 #include "connection_status_observer.h"
@@ -30,6 +31,9 @@ class WireguardDartPlugin : public flutter::Plugin {
 
   std::unique_ptr<ServiceControl> tunnel_service_;
   std::unique_ptr<ConnectionStatusObserver> connection_status_observer_;
+  // Basename of the active config file, which is also the tunnel service's UAPI
+  // pipe name. Empty while disconnected.
+  std::wstring tunnel_name_;
 };
 
 }  // namespace wireguard_dart

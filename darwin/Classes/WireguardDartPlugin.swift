@@ -217,6 +217,55 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             } else {
                 result(ConnectionStatus.unknown.string())
             }
+        case "tunnelStatistics":
+            guard let session = vpnManager?.connection as? NETunnelProviderSession else {
+                Logger.main.debug("tunnelStatistics: no provider session")
+                result(nil)
+                return
+            }
+            guard session.status == .connected else {
+                Logger.main.debug("tunnelStatistics: tunnel is not connected")
+                result(nil)
+                return
+            }
+
+            // Both the reply and the timeout hop to the main queue, so this flag
+            // is only ever touched there — calling `result` twice trips a
+            // Flutter assertion.
+            var didRespond = false
+            // Cancelled as soon as a reply lands, so a consumed FlutterResult is
+            // not retained until the deadline on every poll.
+            var timeout: DispatchWorkItem?
+            let respond: (String?) -> Void = { uapi in
+                DispatchQueue.main.async {
+                    guard !didRespond else { return }
+                    didRespond = true
+                    // cancel() alone leaves the work item — and through it this
+                    // closure and the consumed FlutterResult — retained by the
+                    // captured box, so drop the reference to break the cycle.
+                    timeout?.cancel()
+                    timeout = nil
+                    result(uapi)
+                }
+            }
+            timeout = DispatchWorkItem {
+                Logger.main.error("tunnelStatistics: timed out waiting for the extension")
+                respond(nil)
+            }
+
+            do {
+                // A single zero byte asks WireGuardTunnelProvider for the runtime
+                // configuration, returned as UAPI text. Parsed on the Dart side.
+                try session.sendProviderMessage(Data([0])) { response in
+                    respond(response.flatMap { String(data: $0, encoding: .utf8) })
+                }
+                // An extension that never replies would otherwise leave the Dart
+                // future pending forever and stall the caller's poll loop.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: timeout!)
+            } catch {
+                Logger.main.error("tunnelStatistics: \(error)")
+                respond(nil)
+            }
         case "checkTunnelConfiguration":
             guard let args = call.arguments as? [String: Any],
                 let bundleId = args["bundleId"] as? String, !bundleId.isEmpty
