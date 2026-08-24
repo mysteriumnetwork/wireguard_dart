@@ -217,6 +217,53 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             } else {
                 result(ConnectionStatus.unknown.string())
             }
+        case "tunnelStatistics":
+            guard let session = vpnManager?.connection as? NETunnelProviderSession else {
+                Logger.main.debug("tunnelStatistics: no provider session")
+                result(nil)
+                return
+            }
+            guard session.status == .connected else {
+                Logger.main.debug("tunnelStatistics: tunnel is not connected")
+                result(nil)
+                return
+            }
+
+            // Both the reply and the timeout hop to the main queue, so this flag
+            // is only ever touched there — calling `result` twice trips a
+            // Flutter assertion.
+            var didRespond = false
+            let respond: (String?) -> Void = { uapi in
+                DispatchQueue.main.async {
+                    guard !didRespond else { return }
+                    didRespond = true
+                    result(uapi)
+                }
+            }
+
+            do {
+                // A single zero byte asks WireGuardTunnelProvider for the runtime
+                // configuration, returned as UAPI text. Parsed on the Dart side.
+                try session.sendProviderMessage(Data([0])) { response in
+                    guard let response, let uapi = String(data: response, encoding: .utf8) else {
+                        Logger.main.debug("tunnelStatistics: empty response")
+                        respond(nil)
+                        return
+                    }
+                    respond(uapi)
+                }
+                // An extension that never replies would otherwise leave the Dart
+                // future pending forever and stall the caller's poll loop.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    guard !didRespond else { return }
+                    Logger.main.error("tunnelStatistics: timed out waiting for the extension")
+                    didRespond = true
+                    result(nil)
+                }
+            } catch {
+                Logger.main.error("tunnelStatistics: \(error)")
+                respond(nil)
+            }
         case "checkTunnelConfiguration":
             guard let args = call.arguments as? [String: Any],
                 let bundleId = args["bundleId"] as? String, !bundleId.isEmpty
