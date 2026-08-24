@@ -233,33 +233,31 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
             // is only ever touched there — calling `result` twice trips a
             // Flutter assertion.
             var didRespond = false
+            // Cancelled as soon as a reply lands, so a consumed FlutterResult is
+            // not retained until the deadline on every poll.
+            var timeout: DispatchWorkItem?
             let respond: (String?) -> Void = { uapi in
                 DispatchQueue.main.async {
                     guard !didRespond else { return }
                     didRespond = true
+                    timeout?.cancel()
                     result(uapi)
                 }
+            }
+            timeout = DispatchWorkItem {
+                Logger.main.error("tunnelStatistics: timed out waiting for the extension")
+                respond(nil)
             }
 
             do {
                 // A single zero byte asks WireGuardTunnelProvider for the runtime
                 // configuration, returned as UAPI text. Parsed on the Dart side.
                 try session.sendProviderMessage(Data([0])) { response in
-                    guard let response, let uapi = String(data: response, encoding: .utf8) else {
-                        Logger.main.debug("tunnelStatistics: empty response")
-                        respond(nil)
-                        return
-                    }
-                    respond(uapi)
+                    respond(response.flatMap { String(data: $0, encoding: .utf8) })
                 }
                 // An extension that never replies would otherwise leave the Dart
                 // future pending forever and stall the caller's poll loop.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    guard !didRespond else { return }
-                    Logger.main.error("tunnelStatistics: timed out waiting for the extension")
-                    didRespond = true
-                    result(nil)
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: timeout!)
             } catch {
                 Logger.main.error("tunnelStatistics: \(error)")
                 respond(nil)

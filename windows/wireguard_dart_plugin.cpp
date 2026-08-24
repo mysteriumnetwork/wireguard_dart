@@ -9,6 +9,7 @@
 #include <libbase64.h>
 #include <windows.h>
 
+#include <filesystem>
 #include <memory>
 #include <sstream>
 
@@ -145,17 +146,7 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
     }
 
     // The tunnel service names its UAPI pipe after the config file's basename.
-    {
-      auto separator = wg_config_filename.find_last_of(L"\\/");
-      std::wstring basename =
-          separator == std::wstring::npos ? wg_config_filename : wg_config_filename.substr(separator + 1);
-      const std::wstring kConfExtension = L".conf";
-      if (basename.size() > kConfExtension.size() &&
-          basename.compare(basename.size() - kConfExtension.size(), kConfExtension.size(), kConfExtension) == 0) {
-        basename = basename.substr(0, basename.size() - kConfExtension.size());
-      }
-      this->tunnel_name_ = basename;
-    }
+    this->tunnel_name_ = std::filesystem::path(wg_config_filename).stem().wstring();
 
     wchar_t module_filename[MAX_PATH];
     GetModuleFileName(NULL, module_filename, MAX_PATH);
