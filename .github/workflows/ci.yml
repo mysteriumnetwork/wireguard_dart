@@ -15,6 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
+        with:
+          # pubspec.yaml pins `flutter: 3.44.7` exactly, so resolution fails on
+          # any other SDK. Read the version from .fvmrc, the same source local
+          # development uses via fvm, instead of taking the latest stable.
+          flutter-version-file: .fvmrc
       - run: flutter pub get
       - run: dart run build_runner build --verbose --delete-conflicting-outputs
       - run: flutter test
