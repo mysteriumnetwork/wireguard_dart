@@ -89,13 +89,23 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
   @override
   Future<TunnelStatistics?> getTunnelStatistics() async {
+    final Object? result;
     try {
-      final result = await methodChannel.invokeMethod('tunnelStatistics');
-      final stats = TunnelStatistics.fromJson(jsonDecode(result));
-      return stats;
-    } catch (e) {
-      throw Exception(e);
+      result = await methodChannel.invokeMethod<Object?>('tunnelStatistics');
+    } on PlatformException {
+      // Native reported a problem — most often "not connected". Not fatal.
+      return null;
     }
+
+    if (result is! String || result.isEmpty) {
+      return null;
+    }
+
+    // Android returns JSON; darwin and Windows return raw UAPI text.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return TunnelStatistics.fromJson(jsonDecode(result) as Map<String, dynamic>);
+    }
+    return TunnelStatistics.fromUapi(result);
   }
 
   @override
