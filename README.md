@@ -94,7 +94,7 @@ if (await wireguard.checkNotificationPermission() != NotificationPermission.gran
 ### iOS and macOS
 
 The host app must ship a **Packet Tunnel Provider** extension target whose principal class
-subclasses `WireGuardTunnelProvider` (from the WireGuardKit pod) and forwards the base
+subclasses `WireGuardTunnelProvider` (from WireGuardKit) and forwards the base
 implementations:
 
 ```swift
@@ -106,15 +106,34 @@ class PacketTunnelProvider: WireGuardTunnelProvider {
 ```
 
 Forwarding `handleAppMessage` is **required for tunnel statistics** — that is the channel the
-plugin queries. Declare the pod on the app target and let the extension target inherit search
-paths from it:
+plugin queries.
+
+The extension target also needs WireGuardKit itself, and how you supply it depends on whether the
+host app uses Swift Package Manager (the default since Flutter 3.44).
+
+**Swift Package Manager.** Add `https://github.com/mysteriumnetwork/wireguard-apple.git` to the
+Xcode project's package dependencies and attach the `WireGuardKit` product to the **extension**
+target — the app target receives it transitively through this plugin, but extension targets are
+never covered by `FlutterGeneratedPluginSwiftPackage` and must be wired explicitly.
+
+**Do not also declare the pod.** SwiftPM builds WireGuardKit as three modules (`WireGuardKit`,
+`WireGuardKitC`, `WireGuardKitGo`) while CocoaPods builds one flat module. An extension that sees
+the SwiftPM-built `WireGuardKit.swiftmodule` but reaches WireGuardKit through pod search paths
+fails with:
+
+```
+error: Unable to resolve module dependency: 'WireGuardKitC' (in target 'tun')
+```
+
+**CocoaPods** (only if SwiftPM is disabled in the host app). Declare the pod on the app target and
+let the extension inherit search paths from it:
 
 ```ruby
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  pod 'WireGuardKit', :podspec => "https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.5/WireGuardKit.podspec"
+  pod 'WireGuardKit', :podspec => "https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.6.0/WireGuardKit.podspec"
 
   target 'tun' do
     inherit! :search_paths
