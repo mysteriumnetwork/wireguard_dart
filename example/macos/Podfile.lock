@@ -1,29 +1,16 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - wireguard_dart (0.0.1):
-    - Flutter
-    - FlutterMacOS
-    - WireGuardKit (= 0.5)
-  - WireGuardKit (0.5)
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - wireguard_dart (from `Flutter/ephemeral/.symlinks/plugins/wireguard_dart/darwin`)
-  - WireGuardKit (from `https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.5/WireGuardKit.podspec`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
-  wireguard_dart:
-    :path: Flutter/ephemeral/.symlinks/plugins/wireguard_dart/darwin
-  WireGuardKit:
-    :podspec: https://raw.githubusercontent.com/mysteriumnetwork/wireguard-apple/0.5/WireGuardKit.podspec
 
 SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  wireguard_dart: 2ce686cf0417bf1309f16b02e4a740f385e1bd5a
-  WireGuardKit: 44063ed405613ca3d234e489e24b015d434e2a64
 
-PODFILE CHECKSUM: 2d181daa2a2a0e9d7480efba669a3f523076f5aa
+PODFILE CHECKSUM: 2b84968fc2add46fca06fb153040bba1c1e6f24e
 
 COCOAPODS: 1.16.2

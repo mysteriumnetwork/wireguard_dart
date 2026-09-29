@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "wireguard-apple",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mysteriumnetwork/wireguard-apple.git",
+      "state" : {
+        "revision" : "a71225a09d21f8b4781531e646c49efa055f11e9",
+        "version" : "0.6.0"
+      }
+    }
+  ],
+  "version" : 2
+}
