@@ -73,7 +73,16 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
       'bundleId': bundleId,
       'tunnelName': tunnelName,
     });
-    return result as bool;
+    // A platform that answered with nothing has not told us the tunnel is
+    // missing — a bare cast here would throw a TypeError that callers catching
+    // PlatformException never see.
+    if (result == null) {
+      throw PlatformException(
+        code: 'NATIVE_ERR',
+        message: 'checkTunnelConfiguration returned no value',
+      );
+    }
+    return result;
   }
 
   @override

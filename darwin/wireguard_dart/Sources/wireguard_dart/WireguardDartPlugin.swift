@@ -285,15 +285,29 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
                 )
                 return
             }
-            checkTunnelConfiguration(bundleId: bundleId, tunnelName: tunnelName)
-            { manager in
-                if let vpnManager = manager {
-                    self.vpnManager = vpnManager
-                    Logger.main.debug("Tunnel is set up and existing")
-                    result(true)
-                } else {
-                    Logger.main.debug("Tunnel is not set up")
-                    result(false)
+            Task {
+                do {
+                    let manager = try await checkTunnelConfiguration(
+                        bundleId: bundleId, tunnelName: tunnelName)
+                    if let vpnManager = manager {
+                        self.vpnManager = vpnManager
+                        Logger.main.debug("Tunnel is set up and existing")
+                        result(true)
+                    } else {
+                        Logger.main.debug("Tunnel is not set up")
+                        result(false)
+                    }
+                } catch {
+                    // Reported as an error, never as `false`: a read that failed
+                    // is not a missing configuration, and callers treat `false`
+                    // as "the user has not granted permission".
+                    Logger.main.error(
+                        "Error checking tunnel configuration: \(error)")
+                    result(
+                        nativeFlutterError(
+                            message:
+                                "could not check tunnel configuration: \(error.localizedDescription)"
+                        ))
                 }
             }
         case "removeTunnelConfiguration":
@@ -371,25 +385,16 @@ public class WireguardDartPlugin: NSObject, FlutterPlugin {
         return nil
     }
 
-    func checkTunnelConfiguration(
-        bundleId: String, tunnelName: String,
-        result: @escaping (NETunnelProviderManager?) -> Void
-    ) {
-        Task {
-            do {
-                let mgr = try await isVpnManagerConfigured(
-                    bundleId: bundleId, tunnelName: tunnelName)
-                if let mgr = mgr {
-                    try await configureManager(
-                        mgr: mgr, bundleId: bundleId, tunnelName: tunnelName)
-                }
-                result(mgr)
-            } catch {
-                Logger.main.error(
-                    "Error checking tunnel configuration: \(error)")
-                result(nil)
-            }
-        }
+    /// Read-only lookup of the tunnel configuration.
+    ///
+    /// Deliberately does not call `configureManager`: that saves to the
+    /// NetworkExtension preferences, and two checks overlapping — which the
+    /// host app does at launch and on connect — make the second save fail with
+    /// `NEVPNError.configurationStale`. `setupTunnel` owns configuring.
+    func checkTunnelConfiguration(bundleId: String, tunnelName: String)
+        async throws -> NETunnelProviderManager?
+    {
+        try await isVpnManagerConfigured(bundleId: bundleId, tunnelName: tunnelName)
     }
 
     func removeTunnelConfiguration(bundleId: String, tunnelName: String)

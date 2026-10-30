@@ -216,7 +216,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     }
 
     private fun checkTunnelConfiguration(tunnelName: String, result: MethodChannel.Result) {
-        val intent = GoBackend.VpnService.prepare(activity)
+        // Consent is per-app, so the application context answers this as well as
+        // the activity does — and prepare() throws on a null one, which happens
+        // whenever the plugin is detached from the activity.
+        val intent = GoBackend.VpnService.prepare(activity ?: context)
         havePermission = intent == null
         if (havePermission) initTunnel(tunnelName)
         flutterSuccess(result, havePermission)
@@ -291,7 +294,9 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
     }
 
     private fun checkPermission() {
-        val intent = GoBackend.VpnService.prepare(activity)
+        // Showing the consent dialog still needs the activity; reading the
+        // current state does not, and must not throw when it is gone.
+        val intent = GoBackend.VpnService.prepare(activity ?: context)
         if (intent != null) {
             havePermission = false
             activity?.startActivityForResult(intent, PERMISSIONS_REQUEST_CODE)
