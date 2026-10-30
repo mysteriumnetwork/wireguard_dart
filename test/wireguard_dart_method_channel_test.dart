@@ -13,6 +13,8 @@ void main() {
 
   Object? statisticsResponse;
   var throwPlatformException = false;
+  Object? configurationResponse;
+  var throwConfigurationError = false;
 
   void mockChannel({bool implemented = true}) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -27,6 +29,12 @@ void main() {
           }
           return statisticsResponse;
         }
+        if (call.method == 'checkTunnelConfiguration') {
+          if (throwConfigurationError) {
+            throw PlatformException(code: 'err_native', message: 'lookup failed');
+          }
+          return configurationResponse;
+        }
         return null;
       },
     );
@@ -35,6 +43,8 @@ void main() {
   setUp(() {
     statisticsResponse = null;
     throwPlatformException = false;
+    configurationResponse = null;
+    throwConfigurationError = false;
     mockChannel();
   });
 
@@ -104,6 +114,42 @@ void main() {
       mockChannel(implemented: false);
 
       expect(platform.getTunnelStatistics(), throwsA(isA<MissingPluginException>()));
+    });
+  });
+
+  group('checkTunnelConfiguration', () {
+    Future<bool> check() =>
+        platform.checkTunnelConfiguration(bundleId: 'bundleId', tunnelName: 'tunnelName');
+
+    test('passes a true result through', () async {
+      configurationResponse = true;
+
+      expect(await check(), isTrue);
+    });
+
+    test('passes a false result through', () async {
+      configurationResponse = false;
+
+      expect(await check(), isFalse);
+    });
+
+    test('reports a null response as NATIVE_ERR rather than a TypeError', () async {
+      // A platform that answered with nothing has not said the tunnel is
+      // missing. A bare cast here would throw a TypeError, which callers
+      // catching PlatformException never see.
+      await expectLater(
+        check(),
+        throwsA(isA<PlatformException>().having((e) => e.code, 'code', 'NATIVE_ERR')),
+      );
+    });
+
+    test('propagates a native PlatformException unchanged', () async {
+      throwConfigurationError = true;
+
+      await expectLater(
+        check(),
+        throwsA(isA<PlatformException>().having((e) => e.code, 'code', 'err_native')),
+      );
     });
   });
 }
