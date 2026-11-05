@@ -5,13 +5,12 @@ homepage: https://github.com/mysteriumnetwork/wireguard_dart
 repository: https://github.com/mysteriumnetwork/wireguard_dart
 
 environment:
-  sdk: ">=3.11.0 <4.0.0"
-  flutter: 3.44.7
+  sdk: ">=3.13.0 <4.0.0"
+  flutter: 3.47.9
 
 dependencies:
   flutter:
     sdk: flutter
-  mockito: 5.7.0
   plugin_platform_interface: 2.1.8
 
 dev_dependencies:
@@ -19,6 +18,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: 6.0.0
   build_runner: 2.15.1
+  mockito: 5.8.1
 
 flutter:
   plugin:
