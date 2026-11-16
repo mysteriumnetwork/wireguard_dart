@@ -29,17 +29,31 @@ HANDLE OpenPipe(const std::wstring &pipe_name) {
 // Waits out one overlapped operation, cancelling it once the deadline passes.
 // The caller runs on the platform thread, so a service that accepts the
 // connection but never answers must not be able to block it indefinitely.
-bool AwaitOverlapped(HANDLE pipe, OVERLAPPED *overlapped, BOOL started, DWORD *transferred) {
+//
+// `error` receives the reason on failure. Reported here rather than left to the
+// caller's GetLastError(): a timeout is the return value of
+// WaitForSingleObject, not a last-error, and the CancelIoEx that follows
+// overwrites whatever was there — so a stalled service would otherwise be
+// reported as a pending or already-completed I/O.
+bool AwaitOverlapped(HANDLE pipe, OVERLAPPED *overlapped, BOOL started, DWORD *transferred, DWORD *error) {
+  *error = 0;
   if (!started) {
-    if (GetLastError() != ERROR_IO_PENDING) {
+    const DWORD pending = GetLastError();
+    if (pending != ERROR_IO_PENDING) {
+      *error = pending;
       return false;
     }
     if (WaitForSingleObject(overlapped->hEvent, kIoTimeoutMs) != WAIT_OBJECT_0) {
+      *error = WAIT_TIMEOUT;
       CancelIoEx(pipe, overlapped);
       return false;
     }
   }
-  return GetOverlappedResult(pipe, overlapped, transferred, FALSE) != FALSE;
+  if (GetOverlappedResult(pipe, overlapped, transferred, FALSE) != FALSE) {
+    return true;
+  }
+  *error = GetLastError();
+  return false;
 }
 
 bool IsTerminated(const std::string &response) {
@@ -86,12 +100,14 @@ UapiResult QueryUapi(const std::wstring &tunnel_name) {
   overlapped.hEvent = event;
 
   DWORD written = 0;
+  DWORD io_error = 0;
   const BOOL write_started = WriteFile(pipe, kGetRequest, sizeof(kGetRequest) - 1, &written, &overlapped);
-  if (!AwaitOverlapped(pipe, &overlapped, write_started, &written)) {
-    result = Failure("Could not write the UAPI request.", GetLastError());
+  if (!AwaitOverlapped(pipe, &overlapped, write_started, &written, &io_error)) {
+    result = Failure("Could not write the UAPI request.", io_error);
   } else {
     std::string response;
     char buffer[4096];
+    bool read_failed = false;
     while (!IsTerminated(response)) {
       overlapped = OVERLAPPED{};
       overlapped.hEvent = event;
@@ -99,17 +115,23 @@ UapiResult QueryUapi(const std::wstring &tunnel_name) {
 
       DWORD read = 0;
       const BOOL read_started = ReadFile(pipe, buffer, sizeof(buffer), &read, &overlapped);
-      if (!AwaitOverlapped(pipe, &overlapped, read_started, &read) || read == 0) {
+      if (!AwaitOverlapped(pipe, &overlapped, read_started, &read, &io_error)) {
+        read_failed = true;
+        break;
+      }
+      if (read == 0) {
         break;
       }
       response.append(buffer, read);
     }
-    // UAPI ends its response with a blank line. Anything short of that is a
-    // truncated read, and parsing it would report partial counters as if they
-    // were complete — including missing the trailing `errno`.
+    // UAPI ends its response with a blank line.
     if (IsTerminated(response)) {
       result = {UapiStatus::kOk, response, ""};
+    } else if (read_failed) {
+      result = Failure("Could not read the UAPI response.", io_error);
     } else {
+      // A clean end-of-stream short of UAPI's blank line. Parsing it would
+      // report partial counters as complete, and miss the trailing `errno`.
       result = Failure("The UAPI response was truncated.", 0);
     }
   }
