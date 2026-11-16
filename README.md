@@ -170,9 +170,14 @@ How each platform sources them:
 UAPI text is parsed in Dart by `TunnelStatistics.fromUapi`, shared by both platforms that use it,
 including the seconds + nanoseconds handshake fields. Notes worth knowing:
 
-- **Contract.** Platform-level failures — "not connected", an unreadable pipe, a truncated
-  response — return `null`. A platform with no implementation at all throws
-  `MissingPluginException`, so a poller can stop permanently instead of retrying forever.
+- **Contract.** `null` means there was nothing to read — no tunnel, or not connected. A read that
+  *fails* is reported rather than folded into that same `null`: Android and Windows throw a
+  `PlatformException` carrying the reason, while Apple platforms return `null` and log it through
+  `Logger.main`. A platform with no implementation at all throws `MissingPluginException`, so a
+  poller can stop permanently instead of retrying forever.
+- **Wrap the call.** Because a failed read throws on Android and Windows, a polling loop needs a
+  `catch`. Folding failures into `null` is what once hid a total loss of the Android and Windows
+  counters: an unreadable tunnel was indistinguishable from an idle one.
 - **Cost.** On Apple platforms each call is an IPC round-trip that wakes the network extension; on
   Windows it opens a named pipe. Poll no faster than you need, and stop when disconnected.
 - **Windows elevation.** The UAPI pipe is protected by an Administrators-only DACL, satisfied by

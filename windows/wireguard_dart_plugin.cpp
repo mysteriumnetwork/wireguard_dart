@@ -266,12 +266,19 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
   }
 
   if (call.method_name() == "tunnelStatistics") {
-    auto uapi = QueryUapi(this->tunnel_name_);
-    if (!uapi.has_value()) {
-      result->Success(flutter::EncodableValue());
-      return;
+    const UapiResult uapi = QueryUapi(this->tunnel_name_);
+    switch (uapi.status) {
+      case UapiStatus::kOk:
+        result->Success(flutter::EncodableValue(uapi.uapi));
+        return;
+      case UapiStatus::kNoTunnel:
+        // Nothing to read, which Dart surfaces as a null rather than a throw.
+        result->Success(flutter::EncodableValue());
+        return;
+      case UapiStatus::kFailed:
+        result->Error("statistics_failed", uapi.error);
+        return;
     }
-    result->Success(flutter::EncodableValue(*uapi));
     return;
   }
 

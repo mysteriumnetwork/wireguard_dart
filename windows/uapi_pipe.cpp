@@ -2,6 +2,9 @@
 
 #include <windows.h>
 
+// Defined in wireguard_dart_plugin.cpp, declared here the same way it is there.
+std::string GetLastErrorAsString(DWORD error_code);
+
 namespace wireguard_dart {
 
 namespace {
@@ -42,31 +45,51 @@ bool AwaitOverlapped(HANDLE pipe, OVERLAPPED *overlapped, BOOL started, DWORD *t
 bool IsTerminated(const std::string &response) {
   return response.size() >= 2 && response.compare(response.size() - 2, 2, "\n\n") == 0;
 }
+
+UapiResult Failure(const std::string &what, DWORD error_code) {
+  std::string message = what;
+  if (error_code != 0) {
+    message += " Windows Error Code: " + std::to_string(error_code) + ".";
+    message += " Description: " + GetLastErrorAsString(error_code);
+  }
+  return {UapiStatus::kFailed, "", message};
+}
 }  // namespace
 
-std::optional<std::string> QueryUapi(const std::wstring &tunnel_name) {
+UapiResult QueryUapi(const std::wstring &tunnel_name) {
+  // Set on connect and cleared on disconnect, so an empty name means this
+  // plugin instance has no tunnel of its own to read.
   if (tunnel_name.empty()) {
-    return std::nullopt;
+    return {UapiStatus::kNoTunnel, "", ""};
   }
 
   HANDLE pipe = OpenPipe(std::wstring(kPipePrefix) + tunnel_name);
   if (pipe == INVALID_HANDLE_VALUE) {
-    return std::nullopt;
+    const DWORD error_code = GetLastError();
+    // The service removes the pipe when the tunnel goes down, so a missing one
+    // is the ordinary disconnected state rather than something to report.
+    if (error_code == ERROR_FILE_NOT_FOUND || error_code == ERROR_PATH_NOT_FOUND) {
+      return {UapiStatus::kNoTunnel, "", ""};
+    }
+    return Failure("Could not open the tunnel service pipe.", error_code);
   }
 
   HANDLE event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
   if (event == nullptr) {
+    const DWORD error_code = GetLastError();
     CloseHandle(pipe);
-    return std::nullopt;
+    return Failure("Could not create the pipe wait event.", error_code);
   }
 
-  std::optional<std::string> result;
+  UapiResult result{UapiStatus::kFailed, "", ""};
   OVERLAPPED overlapped{};
   overlapped.hEvent = event;
 
   DWORD written = 0;
   const BOOL write_started = WriteFile(pipe, kGetRequest, sizeof(kGetRequest) - 1, &written, &overlapped);
-  if (AwaitOverlapped(pipe, &overlapped, write_started, &written)) {
+  if (!AwaitOverlapped(pipe, &overlapped, write_started, &written)) {
+    result = Failure("Could not write the UAPI request.", GetLastError());
+  } else {
     std::string response;
     char buffer[4096];
     while (!IsTerminated(response)) {
@@ -85,7 +108,9 @@ std::optional<std::string> QueryUapi(const std::wstring &tunnel_name) {
     // truncated read, and parsing it would report partial counters as if they
     // were complete — including missing the trailing `errno`.
     if (IsTerminated(response)) {
-      result = response;
+      result = {UapiStatus::kOk, response, ""};
+    } else {
+      result = Failure("The UAPI response was truncated.", 0);
     }
   }
 
