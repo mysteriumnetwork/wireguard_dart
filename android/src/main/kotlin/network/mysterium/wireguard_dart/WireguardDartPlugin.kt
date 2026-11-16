@@ -286,9 +286,18 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         scope.launch(Dispatchers.IO) {
             try {
                 val stats = WireguardBackend.instance.getStatisticsSnapshot()
-                flutterSuccess(result, Klaxon().toJsonString(stats))
+                // Serialising a null snapshot yields the literal string "null",
+                // which the Dart side then cannot decode as a map.
+                flutterSuccess(result, stats?.let { Klaxon().toJsonString(it) })
             } catch (e: Throwable) {
-                flutterError(result, e.message ?: "Unknown error")
+                // The class name carries the diagnosis: the message alone is
+                // frequently null, and the single-argument flutterError puts
+                // its text in the error *code*, leaving the message empty.
+                flutterError(
+                    result,
+                    "statistics_failed",
+                    "${e.javaClass.simpleName}: ${e.message ?: "no message"}",
+                )
             }
         }
     }

@@ -96,15 +96,17 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
     });
   }
 
+  /// Null when there is no tunnel to read, and **throws** when the platform
+  /// reports a failure.
+  ///
+  /// The error used to be swallowed into that same null. It meant a total
+  /// failure of the Android counters was indistinguishable from an idle
+  /// tunnel, and it stayed invisible for as long as it did because of it.
+  /// Callers already handle [MissingPluginException] from here, so a
+  /// [PlatformException] is nothing new for them to catch.
   @override
   Future<TunnelStatistics?> getTunnelStatistics() async {
-    final Object? result;
-    try {
-      result = await methodChannel.invokeMethod<Object?>('tunnelStatistics');
-    } on PlatformException {
-      // Native reported a problem — most often "not connected". Not fatal.
-      return null;
-    }
+    final result = await methodChannel.invokeMethod<Object?>('tunnelStatistics');
 
     if (result is! String || result.isEmpty) {
       return null;
@@ -112,7 +114,10 @@ class MethodChannelWireguardDart extends WireguardDartPlatform {
 
     // Android returns JSON; darwin and Windows return raw UAPI text.
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return TunnelStatistics.fromJson(jsonDecode(result) as Map<String, dynamic>);
+      // A null snapshot serialises to the literal string "null", which decodes
+      // to null rather than to a map.
+      final decoded = jsonDecode(result);
+      return decoded is Map<String, dynamic> ? TunnelStatistics.fromJson(decoded) : null;
     }
     return TunnelStatistics.fromUapi(result);
   }
