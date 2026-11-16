@@ -288,6 +288,10 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 val stats = WireguardBackend.instance.getStatisticsSnapshot()
                 // Serialising a null snapshot yields the literal string "null",
                 // which the Dart side then cannot decode as a map.
+                //
+                // Sent as "nothing to read" rather than an error: the stats
+                // poll runs while disconnected too, so erroring on every tick
+                // would drown the failures worth seeing.
                 flutterSuccess(result, stats?.let { Klaxon().toJsonString(it) })
             } catch (e: Throwable) {
                 // The class name carries the diagnosis: the message alone is

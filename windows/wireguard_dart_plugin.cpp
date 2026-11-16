@@ -279,6 +279,10 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
         result->Error("statistics_failed", uapi.error);
         return;
     }
+    // Unreachable today, and placed after the switch so the compiler keeps
+    // checking exhaustiveness. Without it a new UapiStatus would return
+    // without completing the result, leaving the Dart future pending forever.
+    result->Error("statistics_failed", "Unhandled UAPI status.");
     return;
   }
 

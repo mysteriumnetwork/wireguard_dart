@@ -129,6 +129,8 @@ UapiResult QueryUapi(const std::wstring &tunnel_name) {
       result = {UapiStatus::kOk, response, ""};
     } else if (read_failed) {
       result = Failure("Could not read the UAPI response.", io_error);
+    } else if (response.empty()) {
+      result = Failure("The tunnel service closed the pipe without answering.", 0);
     } else {
       // A clean end-of-stream short of UAPI's blank line. Parsing it would
       // report partial counters as complete, and miss the trailing `errno`.
