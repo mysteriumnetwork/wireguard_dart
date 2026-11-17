@@ -64,6 +64,15 @@ void main() {
     });
   });
 
+  group('TunnelStatistics.fromJson', () {
+    test('names the keys it received when the counters are missing', () {
+      expect(
+        () => TunnelStatistics.fromJson(const {'a': 1, 'b': 2, 'c': 3}),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('[a, b, c]'))),
+      );
+    });
+  });
+
   group('TunnelStatistics.toString', () {
     test('prints the counters rather than the default instance text', () {
       const stats = TunnelStatistics(

@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.beust.klaxon.Klaxon
 import com.wireguard.android.backend.Backend
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
@@ -292,7 +291,7 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 // Sent as "nothing to read" rather than an error: the stats
                 // poll runs while disconnected too, so erroring on every tick
                 // would drown the failures worth seeing.
-                val json = stats?.let { Klaxon().toJsonString(it) }
+                val json = stats?.toJson()
                 Log.d(TAG, "tunnelStatistics -> ${json ?: "null"}")
                 flutterSuccess(result, json)
             } catch (e: Throwable) {
@@ -308,6 +307,14 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
             }
         }
     }
+
+    // Written by hand rather than reflected: R8 runs on every release build and
+    // renames these properties, so a reflective serialiser emits keys Dart
+    // cannot read — counters that work in debug and are empty in release.
+    private fun TunnelStatistics.toJson(): String =
+        "{\"totalDownload\":$totalDownload," +
+            "\"totalUpload\":$totalUpload," +
+            "\"latestHandshake\":$latestHandshake}"
 
     private fun checkPermission() {
         // Showing the consent dialog still needs the activity; reading the

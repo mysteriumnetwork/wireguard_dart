@@ -15,11 +15,23 @@ class TunnelStatistics {
   });
 
   /// Factory constructor that creates a [TunnelStatistics] object from a JSON map.
-  factory TunnelStatistics.fromJson(Map<String, dynamic> json) => TunnelStatistics(
-    totalDownload: json['totalDownload'] as int,
-    totalUpload: json['totalUpload'] as int,
-    latestHandshake: json['latestHandshake'] as int,
-  );
+  ///
+  /// Throws a [FormatException] naming the keys it did get when one is missing.
+  /// A reflective serialiser on the native side once shipped R8-renamed keys,
+  /// and the resulting `null is not int` told nobody what had happened.
+  factory TunnelStatistics.fromJson(Map<String, dynamic> json) {
+    final download = json['totalDownload'];
+    final upload = json['totalUpload'];
+    final handshake = json['latestHandshake'];
+    if (download is! int || upload is! int || handshake is! int) {
+      throw FormatException('Tunnel statistics missing counters, got keys ${json.keys.toList()}');
+    }
+    return TunnelStatistics(
+      totalDownload: download,
+      totalUpload: upload,
+      latestHandshake: handshake,
+    );
+  }
 
   /// Parses WireGuard's UAPI text format — the output of `wgGetConfig` on Apple
   /// platforms and of `get=1` on the Windows tunnel service pipe.
