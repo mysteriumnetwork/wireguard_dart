@@ -97,4 +97,11 @@ class TunnelStatistics {
     'totalUpload': totalUpload,
     'latestHandshake': latestHandshake,
   };
+
+  /// Readable in a log line. Without it the counters a caller wanted to see
+  /// print as `Instance of 'TunnelStatistics'`.
+  @override
+  String toString() =>
+      'TunnelStatistics(totalDownload: $totalDownload, totalUpload: $totalUpload, '
+      'latestHandshake: $latestHandshake)';
 }

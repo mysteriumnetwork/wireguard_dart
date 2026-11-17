@@ -292,11 +292,14 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
                 // Sent as "nothing to read" rather than an error: the stats
                 // poll runs while disconnected too, so erroring on every tick
                 // would drown the failures worth seeing.
-                flutterSuccess(result, stats?.let { Klaxon().toJsonString(it) })
+                val json = stats?.let { Klaxon().toJsonString(it) }
+                Log.d(TAG, "tunnelStatistics -> ${json ?: "null"}")
+                flutterSuccess(result, json)
             } catch (e: Throwable) {
                 // The class name carries the diagnosis: the message alone is
                 // frequently null, and the single-argument flutterError puts
                 // its text in the error *code*, leaving the message empty.
+                Log.e(TAG, "tunnelStatistics failed", e)
                 flutterError(
                     result,
                     "statistics_failed",

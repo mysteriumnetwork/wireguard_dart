@@ -212,12 +212,23 @@ class WireguardBackend private constructor(
     }
 
     suspend fun getStatisticsSnapshot(): TunnelStatistics? {
-        val tunnel = currentTunnel ?: return null
+        val tunnel = currentTunnel ?: run {
+            // GoBackend also answers with an empty Statistics when it does not
+            // recognise the tunnel, so the two zero cases are logged apart.
+            Log.d(serviceTag, "Statistics: no tunnel initialized, running=${backend.runningTunnelNames}")
+            return null
+        }
         return withContext(wireGuardDispatcher) {
             val stats = backend.getStatistics(tunnel)
             val latestHandshake =
                 stats.peers().mapNotNull { stats.peer(it)?.latestHandshakeEpochMillis }.maxOrNull()
                     ?: 0L
+            Log.d(
+                serviceTag,
+                "Statistics for '${tunnel.getName()}': peers=${stats.peers().size}" +
+                    " rx=${stats.totalRx()} tx=${stats.totalTx()} handshake=$latestHandshake" +
+                    " running=${backend.runningTunnelNames}"
+            )
             TunnelStatistics(stats.totalRx(), stats.totalTx(), latestHandshake)
         }
     }
