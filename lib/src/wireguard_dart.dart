@@ -56,6 +56,16 @@ class WireguardDart {
     );
   }
 
+  /// Byte counters and the latest handshake for the running tunnel.
+  ///
+  /// Null means there was nothing to read — no tunnel, or not connected yet.
+  /// A read that *fails* is reported instead of being folded into that same
+  /// null: Android and Windows throw a `PlatformException` carrying the
+  /// reason, a malformed payload throws a `FormatException`, and a platform
+  /// with no implementation throws `MissingPluginException` so a poller can
+  /// stop for good. Apple platforms return null and log the reason natively.
+  ///
+  /// Polling loops therefore need a `catch` — see the README for the rest.
   Future<TunnelStatistics?> getTunnelStatistics() {
     return WireguardDartPlatform.instance.getTunnelStatistics();
   }

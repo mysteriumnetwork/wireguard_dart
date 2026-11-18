@@ -80,6 +80,29 @@ void main() {
       expect(stats.totalUpload, 3);
     });
 
+    // The Windows side renders the driver's peer structs rather than relaying a
+    // UAPI socket, so it leads with the counters and omits the nanoseconds for
+    // a peer that never handshaked. Pinned here because that text crosses a
+    // language boundary with no compiler to check it.
+    test('parses the Windows driver rendering', () {
+      const uapi =
+          'rx_bytes=2048\n'
+          'tx_bytes=1024\n'
+          'last_handshake_time_sec=1756000000\n'
+          'last_handshake_time_nsec=123456700\n'
+          'rx_bytes=0\n'
+          'tx_bytes=0\n'
+          'last_handshake_time_sec=0\n'
+          'errno=0\n\n';
+
+      final stats = TunnelStatistics.fromUapi(uapi);
+
+      expect(stats, isNotNull);
+      expect(stats!.totalDownload, 2048);
+      expect(stats.totalUpload, 1024);
+      expect(stats.latestHandshake, 1756000000 * 1000 + 123);
+    });
+
     test('returns null for an empty payload', () {
       expect(TunnelStatistics.fromUapi(''), isNull);
     });

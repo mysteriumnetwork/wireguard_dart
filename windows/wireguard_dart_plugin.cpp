@@ -19,7 +19,7 @@
 #include "key_generator.h"
 #include "service_control.h"
 #include "tunnel.h"
-#include "uapi_pipe.h"
+#include "tunnel_stats.h"
 #include "utils.h"
 #include "wireguard.h"
 
@@ -266,12 +266,23 @@ void WireguardDartPlugin::HandleMethodCall(const flutter::MethodCall<flutter::En
   }
 
   if (call.method_name() == "tunnelStatistics") {
-    auto uapi = QueryUapi(this->tunnel_name_);
-    if (!uapi.has_value()) {
-      result->Success(flutter::EncodableValue());
-      return;
+    const TunnelStatsResult stats = QueryTunnelStats(this->tunnel_name_);
+    switch (stats.status) {
+      case TunnelStatsStatus::kOk:
+        result->Success(flutter::EncodableValue(stats.uapi));
+        return;
+      case TunnelStatsStatus::kNoTunnel:
+        // Nothing to read, which Dart surfaces as a null rather than a throw.
+        result->Success(flutter::EncodableValue());
+        return;
+      case TunnelStatsStatus::kFailed:
+        result->Error("statistics_failed", stats.error);
+        return;
     }
-    result->Success(flutter::EncodableValue(*uapi));
+    // Unreachable today, and placed after the switch so the compiler keeps
+    // checking exhaustiveness. Without it a new TunnelStatsStatus would return
+    // without completing the result, leaving the Dart future pending forever.
+    result->Error("statistics_failed", "Unhandled tunnel statistics status.");
     return;
   }
 

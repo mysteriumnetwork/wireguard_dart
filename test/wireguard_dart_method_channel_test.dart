@@ -102,9 +102,19 @@ void main() {
       expect(await platform.getTunnelStatistics(), isNull);
     });
 
-    test('returns null when the platform reports an error', () async {
+    // Swallowing this into a null is what hid a total failure of the Android
+    // counters: an unreadable tunnel looked exactly like an idle one.
+    test('throws when the platform reports an error', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       throwPlatformException = true;
+
+      expect(platform.getTunnelStatistics(), throwsA(isA<PlatformException>()));
+    });
+
+    test('returns null when Android sends a null snapshot', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      // What Klaxon produces for a null, which decodes to null, not a map.
+      statisticsResponse = 'null';
 
       expect(await platform.getTunnelStatistics(), isNull);
     });

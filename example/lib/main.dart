@@ -327,13 +327,26 @@ class _MyAppState extends State<MyApp> {
     while (true) {
       await Future.delayed(interval);
       final prevStats = _lastTunnelStatistics;
-      var stats = await _wireguardDartPlugin.getTunnelStatistics();
-      if (prevStats != null && stats != null) {
+      TunnelStatistics? stats;
+      try {
+        stats = await _wireguardDartPlugin.getTunnelStatistics();
+      } catch (e) {
+        // A failed read is transient — the tunnel may still be coming up, or
+        // the service may be busy. Letting it escape would end the stream for
+        // good rather than skipping one tick.
+        developer.log('Tunnel statistics poll failed', error: e.toString());
+        continue;
+      }
+      // Null means there is nothing to read yet, not that anything is wrong.
+      if (stats == null) {
+        continue;
+      }
+      if (prevStats != null) {
         uploadSpeedKBs = ((stats.totalUpload - prevStats.totalUpload) / interval.inSeconds) / 1024;
         downloadSpeedKBs =
             ((stats.totalDownload - prevStats.totalDownload) / interval.inSeconds) / 1024;
       }
-      yield _lastTunnelStatistics = stats!;
+      yield _lastTunnelStatistics = stats;
     }
   }
 

@@ -64,6 +64,31 @@ void main() {
     });
   });
 
+  group('TunnelStatistics.fromJson', () {
+    test('names the keys it received when the counters are missing', () {
+      expect(
+        () => TunnelStatistics.fromJson(const {'a': 1, 'b': 2, 'c': 3}),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('[a, b, c]'))),
+      );
+    });
+  });
+
+  group('TunnelStatistics.toString', () {
+    test('prints the counters rather than the default instance text', () {
+      const stats = TunnelStatistics(
+        totalDownload: 2048,
+        totalUpload: 1024,
+        latestHandshake: 1756000000123,
+      );
+
+      expect(
+        stats.toString(),
+        'TunnelStatistics(totalDownload: 2048, totalUpload: 1024, '
+        'latestHandshake: 1756000000123)',
+      );
+    });
+  });
+
   group('KeyPair', () {
     test('keeps the public and private keys in the documented order', () {
       final pair = KeyPair('pub', 'priv');

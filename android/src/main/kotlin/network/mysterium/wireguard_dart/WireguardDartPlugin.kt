@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.beust.klaxon.Klaxon
 import com.wireguard.android.backend.Backend
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
@@ -286,12 +285,36 @@ class WireguardDartPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Acti
         scope.launch(Dispatchers.IO) {
             try {
                 val stats = WireguardBackend.instance.getStatisticsSnapshot()
-                flutterSuccess(result, Klaxon().toJsonString(stats))
+                // Serialising a null snapshot yields the literal string "null",
+                // which the Dart side then cannot decode as a map.
+                //
+                // Sent as "nothing to read" rather than an error: the stats
+                // poll runs while disconnected too, so erroring on every tick
+                // would drown the failures worth seeing.
+                val json = stats?.toJson()
+                Log.d(TAG, "tunnelStatistics -> ${json ?: "null"}")
+                flutterSuccess(result, json)
             } catch (e: Throwable) {
-                flutterError(result, e.message ?: "Unknown error")
+                // The class name carries the diagnosis: the message alone is
+                // frequently null, and the single-argument flutterError puts
+                // its text in the error *code*, leaving the message empty.
+                Log.e(TAG, "tunnelStatistics failed", e)
+                flutterError(
+                    result,
+                    "statistics_failed",
+                    "${e.javaClass.simpleName}: ${e.message ?: "no message"}",
+                )
             }
         }
     }
+
+    // Written by hand rather than reflected: R8 runs on every release build and
+    // renames these properties, so a reflective serialiser emits keys Dart
+    // cannot read — counters that work in debug and are empty in release.
+    private fun TunnelStatistics.toJson(): String =
+        "{\"totalDownload\":$totalDownload," +
+            "\"totalUpload\":$totalUpload," +
+            "\"latestHandshake\":$latestHandshake}"
 
     private fun checkPermission() {
         // Showing the consent dialog still needs the activity; reading the
